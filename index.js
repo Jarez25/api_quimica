@@ -2,6 +2,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import elementosRoutes from './routes/elementosRoutes.js';
+import mezclarRoutes from './routes/mezclarRoutes.js';  // <-- Importa las rutas de mezclar
 import swaggerUi from 'swagger-ui-express';
 import swaggerSpec from './swagger.js';
 
@@ -11,6 +12,10 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 const mongoURI = process.env.MONGO_URI;
+
+console.log('API Key:', process.env.OPENAI_API_KEY);
+
+app.use(express.json()); // <--- Importante para leer JSON del body
 
 mongoose.connect(mongoURI, {
   useNewUrlParser: true,
@@ -30,7 +35,8 @@ app.get('/', (req, res) => {
     { path: '/elementos/atomic_number/:atomic_number', description: 'Obtener elemento por número atómico (reemplaza :atomic_number)' },
     { path: '/elementos/symbol/:symbol', description: 'Obtener elemento por símbolo químico (reemplaza :symbol)' },
     { path: '/elementos/name/:name', description: 'Obtener elemento por nombre (reemplaza :name)' },
-    { path: '/elementos/grupo/:grupo', description: 'Obtener elementos por grupo y nombre de familia (reemplaza :grupo)' }
+    { path: '/elementos/grupo/:grupo', description: 'Obtener elementos por grupo y nombre de familia (reemplaza :grupo)' },
+    { path: '/mezclar', description: 'Mezclar elementos químicos (POST)' }
   ];
 
   const html = `
@@ -48,8 +54,9 @@ app.get('/', (req, res) => {
   res.send(html);
 });
 
-// Usar rutas separadas para /elementos
+// Usar rutas separadas para /elementos y /mezclar
 app.use('/elementos', elementosRoutes);
+app.use('/mezclar', mezclarRoutes); // <--- Aquí montas la ruta para mezclar
 
 // ** Montar Swagger UI para documentación **
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
