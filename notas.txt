@@ -1,0 +1,17 @@
+Validar las variables de entorno:
+Usa librerías como joi o envalid para asegurarte que tus variables existen y tienen buen formato al arrancar la app.
+
+Separar rutas y lógica:
+En vez de tener todas las rutas en un solo archivo, crea controladores y rutas en carpetas separadas para mejor organización.
+
+Manejo centralizado de errores:
+Implementa middleware para manejo de errores en Express y no repetir try/catch en cada ruta.
+
+Uso de async/await correctamente:
+Maneja todas las promesas para evitar posibles fugas o bloqueos.
+
+Documentar tu API:
+Usa Swagger o Postman para documentar endpoints.
+
+Implementar logs con niveles (info, warn, error):
+Con librerías como winston o pino.

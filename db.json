@@ -1,0 +1,37 @@
+[
+  {
+    "id": 1,
+    "nombre": "Cien años de soledad",
+    "escritor": "Gabriel García Márquez",
+    "numero_paginas": 471,
+    "anio_publicacion": 1967
+  },
+  {
+    "id": 2,
+    "nombre": "1984",
+    "escritor": "George Orwell",
+    "numero_paginas": 328,
+    "anio_publicacion": 1949
+  },
+  {
+    "id": 3,
+    "nombre": "Don Quijote de la Mancha",
+    "escritor": "Miguel de Cervantes",
+    "numero_paginas": 863,
+    "anio_publicacion": 1605
+  },
+  {
+    "id": 4,
+    "nombre": "El Principito",
+    "escritor": "Antoine de Saint-Exupéry",
+    "numero_paginas": 96,
+    "anio_publicacion": 1943
+  },
+  {
+    "id": 5,
+    "nombre": "La sombra del viento",
+    "escritor": "Carlos Ruiz Zafón",
+    "numero_paginas": 565,
+    "anio_publicacion": 2001
+  }
+]
