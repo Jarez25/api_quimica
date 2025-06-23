@@ -58,7 +58,9 @@ export const getElementBySymbol = async (req, res) => {
 export const getElementByName = async (req, res) => {
   try {
     const nombre = req.params.name;
-    const elemento = await Element.findOne({ name: new RegExp(`^${nombre}$`, 'i') });
+    const elemento = await Element.findOne({
+      name: new RegExp(`^${nombre}$`, 'i'),
+    });
     if (elemento) {
       res.json(elemento);
     } else {
@@ -81,7 +83,7 @@ export const getElementsByGroup = async (req, res) => {
       res.json({
         grupo: grupo,
         familia: familia,
-        elementos: elementos
+        elementos: elementos,
       });
     } else {
       res.status(404).send('No se encontraron elementos en ese grupo');
