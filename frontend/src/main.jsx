@@ -4,16 +4,18 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 
 import './index.css';
 import Header from './components/Header';
+import Index from './components/Index';
 import Body from './components/Body';
-import ElementoDetalle from './components/ElementoDetalle'; // Asegúrate de crear este componente
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <Header />
       <Routes>
-        <Route path="/" element={<Body />} />
-        <Route path="/elemento/:id" element={<ElementoDetalle />} />
+        <Route path="/" element={<Index />} />
+        <Route path="/elementos" element={<Body />} />
+        {/* Si usas esto también para detalles individuales */}
+        <Route path="/elemento/:id" element={<Body />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>
