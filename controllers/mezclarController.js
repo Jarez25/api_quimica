@@ -1,20 +1,20 @@
-// controllers/mezclarController.js
-
 import { OpenAI } from 'openai';
-
+import 'dotenv/config';
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY // Usa la variable de entorno
+  apiKey: process.env.OPENAI_API_KEY, // Usa la variable de entorno
 });
 
 export const mezclarElementos = async (req, res) => {
   const { elementos } = req.body;
 
   if (!elementos || !Array.isArray(elementos) || elementos.length < 2) {
-    return res.status(400).json({ error: 'Proporcione al menos dos elementos para mezclar.' });
+    return res
+      .status(400)
+      .json({ error: 'Proporcione al menos dos elementos para mezclar.' });
   }
 
-const prompt = `
+  const prompt = `
 Eres un químico experto. Dados los elementos: ${elementos.join(', ')}
 
 1. Indica si es posible formar un compuesto químico simple con esos elementos.
@@ -33,8 +33,6 @@ Responde SOLO en formato JSON así:
 }
 `;
 
-
-
   try {
     const completion = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
@@ -49,9 +47,10 @@ Responde SOLO en formato JSON así:
       return res.json(json);
     } catch (parseError) {
       console.error('Error parseando JSON:', parseError);
-      return res.status(500).json({ error: 'La respuesta no fue un JSON válido', respuesta });
+      return res
+        .status(500)
+        .json({ error: 'La respuesta no fue un JSON válido', respuesta });
     }
-
   } catch (err) {
     console.error('Error al consultar la API de OpenAI:', err);
     return res.status(500).json({ error: 'Error al procesar la mezcla' });
