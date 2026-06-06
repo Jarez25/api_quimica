@@ -14,10 +14,10 @@ const router = express.Router();
  * @swagger
  * /mezclar:
  *   post:
- *     summary: Mezcla elementos químicos y obtiene posibles compuestos y sugerencias
+ *     summary: Mezcla elementos químicos y obtiene posibles compuestos, riesgos y sugerencias
  *     tags: [Mezclar]
  *     requestBody:
- *       description: Lista de símbolos de elementos para mezclar (mínimo 2)
+ *       description: Lista de símbolos de elementos para mezclar, mínimo 2
  *       required: true
  *       content:
  *         application/json:
@@ -30,51 +30,14 @@ const router = express.Router();
  *                 type: array
  *                 items:
  *                   type: string
- *                 example: ["C", "H", "O"]
+ *                 example: ["H", "O"]
  *     responses:
  *       200:
- *         description: Resultado con fórmula, descripción, elementos similares y sugerencias
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 resultado:
- *                   type: string
- *                   example: "CH4, CO2"
- *                 descripcion:
- *                   type: string
- *                   example: "Se pueden formar metano y dióxido de carbono."
- *                 elementos_similares:
- *                   type: array
- *                   items:
- *                     type: string
- *                   example: ["N", "S"]
- *                 sugerencias:
- *                   type: array
- *                   items:
- *                     type: string
- *                   example: ["CH4 + O2", "CO2 + H2O"]
+ *         description: Resultado de la mezcla generado por IA
  *       400:
- *         description: Error por datos de entrada inválidos
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: "Proporcione al menos dos elementos para mezclar."
+ *         description: Error por datos inválidos
  *       500:
  *         description: Error interno del servidor
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 error:
- *                   type: string
- *                   example: "Error al procesar la mezcla"
  */
 
 router.post('/', mezclarElementos);
