@@ -12,9 +12,11 @@ import {
   History,
   ShieldAlert,
   Share2,
+  Satellite,
 } from 'lucide-react';
 import { API_ELEMENTOS } from '../config/api';
 import { calcularCapasElectronicas, calcularNFPA704, kelvinACelsius } from '../utils/chemistry';
+import EspectroAtomo from './EspectroAtomo';
 
 function ElementoDetalle() {
   const { id } = useParams();
@@ -242,6 +244,7 @@ function ElementoDetalle() {
                   {[
                     { id: 'fisica', label: 'Termodinámica & Fases', icon: Thermometer },
                     { id: 'cuantica', label: 'Estructura Cuántica & Bohr', icon: Zap },
+                    { id: 'espectro', label: 'Espectroscopía & Llama', icon: Satellite },
                     { id: 'seguridad', label: 'Seguridad NFPA 704', icon: ShieldAlert },
                   ].map((tab) => {
                     const Icon = tab.icon;
@@ -432,6 +435,13 @@ function ElementoDetalle() {
                         </p>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Tab: Espectroscopía Cuántica & Ensayo a la Llama */}
+                {activeTab === 'espectro' && (
+                  <div className="space-y-4">
+                    <EspectroAtomo elemento={elemento} />
                   </div>
                 )}
 

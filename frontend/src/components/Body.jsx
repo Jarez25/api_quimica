@@ -16,9 +16,11 @@ import {
   Flame,
   Droplets,
   Wind,
+  Satellite,
 } from 'lucide-react';
 import { API_ELEMENTOS } from '../config/api';
 import { calcularCapasElectronicas, calcularNFPA704, kelvinACelsius } from '../utils/chemistry';
+import EspectroAtomo from './EspectroAtomo';
 
 function Body() {
   const [elementos, setElementos] = useState([]);
@@ -514,6 +516,7 @@ function Body() {
               {[
                 { id: 'fisica', label: 'Propiedades Físicas & Fases', icon: Thermometer },
                 { id: 'cuantica', label: 'Estructura Cuántica & Bohr', icon: Zap },
+                { id: 'espectro', label: 'Espectroscopía & Llama', icon: Satellite },
                 { id: 'seguridad', label: 'Seguridad NFPA 704 & Riesgos', icon: ShieldAlert },
               ].map((tab) => {
                 const Icon = tab.icon;
@@ -686,6 +689,13 @@ function Body() {
                     <strong>Precaución de laboratorio:</strong> Consultar la Ficha de Datos de Seguridad (FDS/MSDS) oficial antes de manipular reactivos de {elementoSeleccionado.name} concentrados.
                   </p>
                 </div>
+              </div>
+            )}
+
+            {/* Tab Content: Espectro & Llama */}
+            {modalTab === 'espectro' && (
+              <div className="mt-5">
+                <EspectroAtomo elemento={elementoSeleccionado} />
               </div>
             )}
 
