@@ -4,28 +4,29 @@ import { resolverCompuestoEstequiometrico } from '../data/compuestosDatabase.js'
 
 // Adaptador multimodelo con soporte para proveedores de IA gratuitos y premium (100% securizado vía variables de entorno)
 const getAIClient = () => {
-  // 1. Google Gemini (100% Gratis - Google AI Studio)
-  if (process.env.GEMINI_API_KEY) {
-    return {
-      client: new OpenAI({
-        apiKey: process.env.GEMINI_API_KEY,
-        baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
-      }),
-      model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
-      provider: 'Google Gemini (Free Tier)',
-    };
-  }
-
-  // 2. Groq Cloud (100% Gratis - Inferencia ultra-rápida LPU)
-  const groqApiKey = process.env.GROQ_API_KEY;
+  // 1. Groq Cloud (100% Gratis - Inferencia ultra-rápida LPU de alta prioridad)
+  const groqApiKey = (process.env.GROQ_API_KEY || '').trim().replace(/^['"]|['"]$/g, '');
   if (groqApiKey) {
     return {
       client: new OpenAI({
         apiKey: groqApiKey,
         baseURL: 'https://api.groq.com/openai/v1',
       }),
-      model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
+      model: (process.env.GROQ_MODEL || 'openai/gpt-oss-120b').trim().replace(/^['"]|['"]$/g, ''),
       provider: 'Groq Cloud (Free Tier)',
+    };
+  }
+
+  // 2. Google Gemini (100% Gratis - Google AI Studio)
+  const geminiApiKey = (process.env.GEMINI_API_KEY || '').trim().replace(/^['"]|['"]$/g, '');
+  if (geminiApiKey) {
+    return {
+      client: new OpenAI({
+        apiKey: geminiApiKey,
+        baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+      }),
+      model: (process.env.GEMINI_MODEL || 'gemini-1.5-flash').trim(),
+      provider: 'Google Gemini (Free Tier)',
     };
   }
 
@@ -225,7 +226,7 @@ Responde ÚNICAMENTE un objeto JSON válido con la siguiente estructura exacta:
     console.error('❌ Error al procesar la síntesis:', err);
     return res.status(500).json({
       error: 'Error al procesar la mezcla estequiométrica con IA',
-      detalle: err.message,
+      detalle: `${aiProvider?.provider ? `[${aiProvider.provider}] ` : ''}${err.message}`,
     });
   }
 };
