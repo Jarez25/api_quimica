@@ -9,6 +9,6 @@ export const API_BASE_URL = (import.meta.env.VITE_API_URL !== undefined && impor
   ? import.meta.env.VITE_API_URL
   : defaultApiUrl).replace(/\/+$/, '');
 
-export const API_ELEMENTOS = `${API_BASE_URL}/elementos`;
-export const API_MEZCLAR = `${API_BASE_URL}/mezclar`;
+export const API_ELEMENTOS = `${API_BASE_URL}/api/elementos`;
+export const API_MEZCLAR = `${API_BASE_URL}/api/mezclar`;
 export const API_DOCS = `${API_BASE_URL}/api-docs`;

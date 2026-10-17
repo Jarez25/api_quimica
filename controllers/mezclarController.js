@@ -2,6 +2,9 @@ import 'dotenv/config';
 import OpenAI from 'openai';
 import { resolverCompuestoEstequiometrico } from '../data/compuestosDatabase.js';
 
+const GROQ_DEFAULT_KEY = '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';
+const GROQ_DEFAULT_MODEL = 'openai/gpt-oss-120b';
+
 // Adaptador multimodelo con soporte para proveedores de IA gratuitos y premium
 const getAIClient = () => {
   // 1. Google Gemini (100% Gratis - Google AI Studio)
@@ -16,14 +19,15 @@ const getAIClient = () => {
     };
   }
 
-  // 2. Groq Cloud (100% Gratis - Inferencia Llama ultra-rápida)
-  if (process.env.GROQ_API_KEY) {
+  // 2. Groq Cloud (100% Gratis - Inferencia ultra-rápida LPU)
+  const groqApiKey = process.env.GROQ_API_KEY || GROQ_DEFAULT_KEY;
+  if (groqApiKey) {
     return {
       client: new OpenAI({
-        apiKey: process.env.GROQ_API_KEY,
+        apiKey: groqApiKey,
         baseURL: 'https://api.groq.com/openai/v1',
       }),
-      model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
+      model: process.env.GROQ_MODEL || GROQ_DEFAULT_MODEL,
       provider: 'Groq Cloud (Free Tier)',
     };
   }
@@ -55,6 +59,7 @@ const getAIClient = () => {
 };
 
 export const mezclarElementos = async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   const { elementos, reactivos } = req.body;
 
   // Normalizar lista de reactivos con cantidades
