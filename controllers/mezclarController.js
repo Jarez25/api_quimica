@@ -23,7 +23,7 @@ const getAIClient = () => {
         apiKey: process.env.GROQ_API_KEY,
         baseURL: 'https://api.groq.com/openai/v1',
       }),
-      model: process.env.GROQ_MODEL || 'llama-3.3-70b-versatile',
+      model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
       provider: 'Groq Cloud (Free Tier)',
     };
   }
@@ -206,7 +206,12 @@ Responde ÚNICAMENTE un objeto JSON válido con la siguiente estructura exacta:
       });
     }
 
-    const json = JSON.parse(respuesta);
+    let cleanContent = String(respuesta).trim();
+    if (cleanContent.startsWith('```')) {
+      cleanContent = cleanContent.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '').trim();
+    }
+
+    const json = JSON.parse(cleanContent);
 
     return res.json({
       origen_datos: 'analisis_ia_estequiometrico',
