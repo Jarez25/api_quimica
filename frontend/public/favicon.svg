@@ -1,0 +1,142 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <radialGradient id="bgGrad" cx="50%" cy="30%" r="75%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#020617" />
+    </radialGradient>
+
+    <!-- Border Glow -->
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="50%" stop-color="#818cf8" />
+      <stop offset="100%" stop-color="#06b6d4" />
+    </linearGradient>
+
+    <!-- Liquid Gradient (Cyan to Emerald & Violet) -->
+    <linearGradient id="liquidGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#06b6d4" />
+      <stop offset="45%" stop-color="#0ea5e9" />
+      <stop offset="80%" stop-color="#6366f1" />
+      <stop offset="100%" stop-color="#8b5cf6" />
+    </linearGradient>
+
+    <!-- Liquid Wave Highlight -->
+    <linearGradient id="meniscusGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#67e8f9" stop-opacity="0.9" />
+      <stop offset="50%" stop-color="#a5f3fc" stop-opacity="1" />
+      <stop offset="100%" stop-color="#c4b5fd" stop-opacity="0.9" />
+    </linearGradient>
+
+    <!-- Flask Glass Gradient -->
+    <linearGradient id="glassGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="50%" stop-color="#bae6fd" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+
+    <!-- Glow Filter -->
+    <filter id="neonGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+
+    <filter id="subtleGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="1.5" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Dark Shield Squircle Background -->
+  <rect width="128" height="128" rx="30" fill="url(#bgGrad)" />
+  <rect x="2.5" y="2.5" width="123" height="123" rx="28" fill="none" stroke="url(#borderGrad)" stroke-width="2.5" stroke-opacity="0.75" />
+
+  <!-- Quantum Orbital Rings (Behind Flask) -->
+  <!-- Orbital 1: Tilted -32 deg -->
+  <g transform="rotate(-32 64 66)" opacity="0.85">
+    <ellipse cx="64" cy="66" rx="46" ry="17" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-dasharray="115 15" stroke-linecap="round" />
+  </g>
+
+  <!-- Orbital 2: Tilted +32 deg -->
+  <g transform="rotate(32 64 66)" opacity="0.85">
+    <ellipse cx="64" cy="66" rx="46" ry="17" fill="none" stroke="#a855f7" stroke-width="2.2" stroke-dasharray="115 15" stroke-linecap="round" />
+  </g>
+
+  <!-- Chemical Liquid inside Flask -->
+  <!-- Base Coordinates: Flask inside bounds -->
+  <path d="M 40 76 
+           C 50 72, 60 78, 72 74 
+           C 80 72, 84 74, 88 76 
+           L 93 88 
+           C 95 93, 91 97, 85 97 
+           L 43 97 
+           C 37 97, 33 93, 35 88 
+           Z" 
+        fill="url(#liquidGrad)" 
+        filter="url(#subtleGlow)" />
+
+  <!-- Meniscus Surface Highlight -->
+  <path d="M 40 76 C 50 72, 60 78, 72 74 C 80 72, 84 74, 88 76" 
+        fill="none" 
+        stroke="url(#meniscusGrad)" 
+        stroke-width="2.5" 
+        stroke-linecap="round" />
+
+  <!-- Bubbles inside liquid -->
+  <circle cx="58" cy="88" r="2.5" fill="#e0f2fe" opacity="0.9" />
+  <circle cx="70" cy="83" r="1.8" fill="#e0f2fe" opacity="0.7" />
+  <circle cx="50" cy="82" r="1.5" fill="#c4b5fd" opacity="0.8" />
+  <circle cx="64" cy="91" r="1.2" fill="#a5f3fc" opacity="0.7" />
+
+  <!-- Erlenmeyer Glass Flask Body -->
+  <!-- Lip -->
+  <rect x="52" y="24" width="24" height="4.5" rx="2.25" fill="#e0f2fe" />
+
+  <!-- Glass Contours -->
+  <path d="M 56 28 
+           L 56 46 
+           L 35 88 
+           C 32 94, 37 99, 44 99 
+           L 84 99 
+           C 91 99, 96 94, 93 88 
+           L 72 46 
+           L 72 28" 
+        fill="none" 
+        stroke="url(#glassGrad)" 
+        stroke-width="3.5" 
+        stroke-linecap="round" 
+        stroke-linejoin="round" />
+
+  <!-- Glass Inner Reflection Highlight -->
+  <path d="M 40 88 L 57 52 L 58 34" 
+        fill="none" 
+        stroke="#ffffff" 
+        stroke-width="1.8" 
+        stroke-linecap="round" 
+        opacity="0.45" />
+
+  <!-- Quantum Orbital Electrons (Front of Flask) -->
+  <!-- Electron 1: Cyan on Left Orbit -->
+  <circle cx="98" cy="46" r="4" fill="#38bdf8" filter="url(#neonGlow)" />
+  <circle cx="98" cy="46" r="2" fill="#ffffff" />
+
+  <!-- Electron 2: Violet/Magenta on Right Orbit -->
+  <circle cx="28" cy="48" r="4" fill="#c084fc" filter="url(#neonGlow)" />
+  <circle cx="28" cy="48" r="2" fill="#ffffff" />
+
+  <!-- Central Quantum Core / Emission Spark -->
+  <g transform="translate(64, 58)" filter="url(#neonGlow)">
+    <!-- 4-point star -->
+    <path d="M 0 -8 Q 0 0 8 0 Q 0 0 0 8 Q 0 0 -8 0 Q 0 0 0 -8 Z" fill="#ffffff" />
+    <circle cx="0" cy="0" r="2" fill="#38bdf8" />
+  </g>
+
+  <!-- Atomic Ring Particle 3 (Bottom Center) -->
+  <circle cx="64" cy="108" r="2" fill="#818cf8" opacity="0.8" />
+</svg>
