@@ -2,10 +2,7 @@ import 'dotenv/config';
 import OpenAI from 'openai';
 import { resolverCompuestoEstequiometrico } from '../data/compuestosDatabase.js';
 
-const GROQ_DEFAULT_KEY = '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';
-const GROQ_DEFAULT_MODEL = 'openai/gpt-oss-120b';
-
-// Adaptador multimodelo con soporte para proveedores de IA gratuitos y premium
+// Adaptador multimodelo con soporte para proveedores de IA gratuitos y premium (100% securizado vía variables de entorno)
 const getAIClient = () => {
   // 1. Google Gemini (100% Gratis - Google AI Studio)
   if (process.env.GEMINI_API_KEY) {
@@ -20,14 +17,14 @@ const getAIClient = () => {
   }
 
   // 2. Groq Cloud (100% Gratis - Inferencia ultra-rápida LPU)
-  const groqApiKey = process.env.GROQ_API_KEY || GROQ_DEFAULT_KEY;
+  const groqApiKey = process.env.GROQ_API_KEY;
   if (groqApiKey) {
     return {
       client: new OpenAI({
         apiKey: groqApiKey,
         baseURL: 'https://api.groq.com/openai/v1',
       }),
-      model: process.env.GROQ_MODEL || GROQ_DEFAULT_MODEL,
+      model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
       provider: 'Groq Cloud (Free Tier)',
     };
   }
