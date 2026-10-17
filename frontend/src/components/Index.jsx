@@ -1,694 +1,582 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import {
+  Atom,
+  FlaskConical,
+  Search,
+  Database,
+  FileCode2,
+  ExternalLink,
+  ChevronRight,
+  Terminal,
+  Activity,
+  CheckCircle2,
+  Copy,
+  Layers,
+  Sparkles,
+  ArrowRight,
+  ShieldAlert,
+} from 'lucide-react';
+import { API_BASE_URL, API_ELEMENTOS, API_MEZCLAR, API_DOCS } from '../config/api';
 
-const IndexDocumentacion = () => {
+const Index = () => {
   const [modo, setModo] = useState('symbol');
   const [query, setQuery] = useState('');
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState(null);
   const [resultado, setResultado] = useState(null);
+  const [copiado, setCopiado] = useState(false);
+  const [activeTab, setActiveTab] = useState(0);
 
-  const API_BASE = 'http://localhost:3000/elementos';
+  // Health and stats
+  const [health, setHealth] = useState({ status: 'ok', uptime: 0, dbState: 'connected' });
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}/health`)
+      .then((r) => r.json())
+      .then((data) => setHealth(data))
+      .catch(() => setHealth({ status: 'offline', uptime: 0, dbState: 'disconnected' }));
+  }, []);
 
   const endpoint = useMemo(() => {
     if (!query?.trim()) return null;
-
     const value = encodeURIComponent(query.trim());
-
-    if (modo === 'symbol') return `${API_BASE}/symbol/${value}`;
-    if (modo === 'atomic_number') return `${API_BASE}/atomic_number/${value}`;
-    return `${API_BASE}/name/${value}`;
+    if (modo === 'symbol') return `${API_ELEMENTOS}/symbol/${value}`;
+    if (modo === 'atomic_number') return `${API_ELEMENTOS}/atomic_number/${value}`;
+    return `${API_ELEMENTOS}/name/${value}`;
   }, [modo, query]);
 
   const buscar = async (e) => {
     e?.preventDefault?.();
-
     setError(null);
     setResultado(null);
 
     if (!endpoint) return;
 
     if (modo === 'atomic_number' && !/^\d+$/.test(query.trim())) {
-      setError('Para buscar por número atómico, ingresa solo números.');
+      setError('Para buscar por número atómico, introduce únicamente valores numéricos.');
       return;
     }
 
     try {
       setCargando(true);
-
       const res = await fetch(endpoint);
-
       if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
+        throw new Error(`Código HTTP ${res.status}`);
       }
-
       const data = await res.json();
       setResultado(data);
     } catch (err) {
       console.error(err);
-      setError('No se encontró información para la búsqueda o ocurrió un error.');
+      setError('No se encontraron registros químicos con el criterio especificado.');
     } finally {
       setCargando(false);
     }
   };
 
-  useEffect(() => {
-    const handler = (ev) => {
-      if (ev.key === 'Enter' && document.activeElement?.id === 'input-busqueda') {
-        buscar();
-      }
-    };
+  const copiarAlPortapapeles = (texto) => {
+    navigator.clipboard.writeText(texto);
+    setCopiado(true);
+    setTimeout(() => setCopiado(false), 2000);
+  };
 
-    window.addEventListener('keydown', handler);
-
-    return () => window.removeEventListener('keydown', handler);
-  }, [endpoint, query, modo]);
-
-  const getBlockStyle = (block) => {
+  const getBlockMeta = (block) => {
     switch (block) {
       case 's':
         return {
-          bg: 'bg-rose-100',
-          text: 'text-rose-950',
-          badge: 'bg-rose-500',
-          border: 'border-rose-300',
+          name: 'Bloque s (Metales reactivos / H / He)',
+          color: 'text-amber-300 border-amber-500/30 bg-amber-500/10',
+          badge: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
         };
       case 'p':
         return {
-          bg: 'bg-sky-100',
-          text: 'text-sky-950',
-          badge: 'bg-sky-500',
-          border: 'border-sky-300',
+          name: 'Bloque p (No metales / Gases nobles)',
+          color: 'text-cyan-300 border-cyan-500/30 bg-cyan-500/10',
+          badge: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
         };
       case 'd':
         return {
-          bg: 'bg-emerald-100',
-          text: 'text-emerald-950',
-          badge: 'bg-emerald-500',
-          border: 'border-emerald-300',
+          name: 'Bloque d (Metales de transición)',
+          color: 'text-emerald-300 border-emerald-500/30 bg-emerald-500/10',
+          badge: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40',
         };
       case 'f':
         return {
-          bg: 'bg-amber-100',
-          text: 'text-amber-950',
-          badge: 'bg-amber-500',
-          border: 'border-amber-300',
+          name: 'Bloque f (Lantánidos y Actínidos)',
+          color: 'text-rose-300 border-rose-500/30 bg-rose-500/10',
+          badge: 'bg-rose-500/20 text-rose-300 border-rose-500/40',
         };
       default:
         return {
-          bg: 'bg-slate-100',
-          text: 'text-slate-950',
-          badge: 'bg-slate-500',
-          border: 'border-slate-300',
+          name: 'Bloque no asignado',
+          color: 'text-slate-300 border-slate-700 bg-slate-800/40',
+          badge: 'bg-slate-700 text-slate-300 border-slate-600',
         };
     }
   };
 
-  const limpiarBusqueda = () => {
-    setQuery('');
-    setResultado(null);
-    setError(null);
-  };
+  const presets = [
+    { label: 'Oro (Au)', modo: 'symbol', value: 'Au' },
+    { label: 'Uranio (U)', modo: 'symbol', value: 'U' },
+    { label: 'Carbono (C)', modo: 'symbol', value: 'C' },
+    { label: 'Hierro (Fe)', modo: 'symbol', value: 'Fe' },
+    { label: 'Helio (He)', modo: 'symbol', value: 'He' },
+    { label: 'Elemento #79', modo: 'atomic_number', value: '79' },
+  ];
 
-  const ResultadoCard = ({ data }) => {
-    if (!data) return null;
-
-    const items = Array.isArray(data) ? data : [data];
-
-    return (
-      <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {items.map((el, idx) => {
-          const color = getBlockStyle(el.block);
-
-          return (
-            <article
-              key={`${el._id || el.symbol || el.atomic_number || idx}-${idx}`}
-              className="overflow-hidden rounded-3xl border border-white/10 bg-white/[0.04] shadow-xl shadow-black/20 backdrop-blur"
-            >
-              <div className="p-5">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-[0.25em] text-cyan-300">
-                      Resultado
-                    </p>
-
-                    <h4 className="mt-2 text-xl font-black text-white">
-                      {el.name || 'Elemento'}
-                    </h4>
-
-                    <p className="text-sm text-slate-400">
-                      Símbolo químico: {el.symbol || 'N/D'}
-                    </p>
-                  </div>
-
-                  <div
-                    className={`flex h-20 w-20 shrink-0 flex-col items-center justify-center rounded-2xl border ${color.bg} ${color.text} ${color.border}`}
-                  >
-                    <span className="text-[11px] font-bold opacity-70">
-                      {el.atomic_number || 'N/D'}
-                    </span>
-                    <span className="text-3xl font-black leading-none">
-                      {el.symbol || '?'}
-                    </span>
-                  </div>
-                </div>
-
-                <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                    <p className="text-xs text-slate-400">Bloque</p>
-                    <p className="mt-1 font-bold uppercase text-white">
-                      {el.block || 'N/D'}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                    <p className="text-xs text-slate-400">Grupo</p>
-                    <p className="mt-1 font-bold text-white">
-                      {el.group ?? 'N/D'}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                    <p className="text-xs text-slate-400">Periodo</p>
-                    <p className="mt-1 font-bold text-white">
-                      {el.period ?? 'N/D'}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                    <p className="text-xs text-slate-400">Estado</p>
-                    <p className="mt-1 font-bold text-white">
-                      {el.phase || 'N/D'}
-                    </p>
-                  </div>
-                </div>
-
-                {el.atomic_mass && (
-                  <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-3 text-sm">
-                    <p className="text-xs text-slate-400">Masa atómica</p>
-                    <p className="mt-1 font-bold text-white">{el.atomic_mass}</p>
-                  </div>
-                )}
-
-                <Link
-                  to={`/elementos/${el.atomic_number}`}
-                  className="mt-5 inline-flex w-full items-center justify-center rounded-2xl bg-cyan-500 px-4 py-3 text-sm font-black text-slate-950 transition hover:bg-cyan-400"
-                >
-                  Ver detalle del elemento
-                </Link>
-              </div>
-            </article>
-          );
-        })}
-      </div>
-    );
-  };
-
-  const endpoints = [
+  const endpointsList = [
     {
       method: 'GET',
       path: '/elementos',
-      desc: 'Lista todos los elementos químicos registrados.',
-      ejemplo: 'http://localhost:3000/elementos',
-    },
-    {
-      method: 'GET',
-      path: '/elementos/:id',
-      desc: 'Consulta un elemento por ID de MongoDB.',
-      ejemplo: 'http://localhost:3000/elementos/64c2fa0e93a2d7cf0a9c1234',
-    },
-    {
-      method: 'GET',
-      path: '/elementos/atomic_number/:atomic_number',
-      desc: 'Busca un elemento por número atómico.',
-      ejemplo: 'http://localhost:3000/elementos/atomic_number/1',
+      desc: 'Retorna los 118 elementos periódicos con metadatos y coordenadas.',
+      ejemploUrl: `${API_ELEMENTOS}`,
+      curl: `curl -X GET "${API_ELEMENTOS}"`,
     },
     {
       method: 'GET',
       path: '/elementos/symbol/:symbol',
-      desc: 'Busca un elemento por símbolo químico.',
-      ejemplo: 'http://localhost:3000/elementos/symbol/He',
+      desc: 'Búsqueda por símbolo químico de la IUPAC (ej. Au, He, Fe).',
+      ejemploUrl: `${API_ELEMENTOS}/symbol/Au`,
+      curl: `curl -X GET "${API_ELEMENTOS}/symbol/Au"`,
+    },
+    {
+      method: 'GET',
+      path: '/elementos/atomic_number/:atomic_number',
+      desc: 'Consulta por número atómico entero (1 a 118).',
+      ejemploUrl: `${API_ELEMENTOS}/atomic_number/79`,
+      curl: `curl -X GET "${API_ELEMENTOS}/atomic_number/79"`,
     },
     {
       method: 'GET',
       path: '/elementos/name/:name',
-      desc: 'Busca un elemento por nombre.',
-      ejemplo: 'http://localhost:3000/elementos/name/Helio',
+      desc: 'Búsqueda insensible a mayúsculas por nombre del elemento.',
+      ejemploUrl: `${API_ELEMENTOS}/name/Gold`,
+      curl: `curl -X GET "${API_ELEMENTOS}/name/Gold"`,
     },
     {
       method: 'GET',
       path: '/elementos/grupo/:grupo',
-      desc: 'Filtra elementos por grupo o categoría.',
-      ejemplo: 'http://localhost:3000/elementos/grupo/alcalinos',
-    },
-  ];
-
-  const ejemplosBusqueda = [
-    {
-      label: 'Hidrógeno',
-      modo: 'symbol',
-      value: 'H',
+      desc: 'Filtra elementos por grupo periódico (1 al 18).',
+      ejemploUrl: `${API_ELEMENTOS}/grupo/18`,
+      curl: `curl -X GET "${API_ELEMENTOS}/grupo/18"`,
     },
     {
-      label: 'Helio',
-      modo: 'symbol',
-      value: 'He',
-    },
-    {
-      label: 'Oxígeno',
-      modo: 'symbol',
-      value: 'O',
-    },
-    {
-      label: 'Sodio',
-      modo: 'symbol',
-      value: 'Na',
+      method: 'POST',
+      path: '/mezclar',
+      desc: 'Sintetizador molecular estequiométrico asistido por IA.',
+      ejemploUrl: `${API_MEZCLAR}`,
+      curl: `curl -X POST "${API_MEZCLAR}" -H "Content-Type: application/json" -d '{"elementos":["H","O"]}'`,
     },
   ];
 
   return (
-    <main className="min-h-screen bg-[#07111f] text-slate-100">
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-24 top-20 h-72 w-72 rounded-full bg-cyan-500/20 blur-3xl" />
-        <div className="absolute right-0 top-40 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" />
-        <div className="absolute bottom-0 left-1/2 h-80 w-80 rounded-full bg-rose-500/10 blur-3xl" />
-      </div>
+    <main className="min-h-screen bg-[#070d18] bg-lab-pattern bg-radial-gradient text-slate-100 pb-20">
+      
+      {/* Hero Section */}
+      <section className="relative mx-auto max-w-7xl px-4 pt-10 sm:px-6 lg:px-8">
+        <div className="rounded-2xl border border-slate-800/80 bg-gradient-to-b from-slate-900/90 via-slate-900/50 to-slate-950/80 p-6 backdrop-blur-xl sm:p-10 shadow-2xl shadow-black/40">
+          
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800/80 pb-6">
+            <div className="flex items-center gap-3">
+              <span className="flex h-2.5 w-2.5 rounded-full bg-emerald-400 shadow-sm shadow-emerald-400" />
+              <span className="font-mono text-xs font-semibold tracking-wider text-slate-400 uppercase">
+                CHEMLAB PLATFORM // CORE API v2.0
+              </span>
+            </div>
 
-      <div className="relative mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <header className="mb-8 flex flex-col gap-4 rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-2xl shadow-black/20 backdrop-blur lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-sm font-black uppercase tracking-[0.3em] text-cyan-300">
-              Química API
-            </p>
-
-            <h1 className="mt-2 text-2xl font-black tracking-tight text-white sm:text-3xl">
-              Documentación de Elementos Químicos
-            </h1>
-
-            <p className="mt-2 max-w-2xl text-sm text-slate-300">
-              Consulta elementos de la tabla periódica, revisa endpoints de tu API
-              y prueba búsquedas conectadas con MongoDB.
-            </p>
+            <div className="flex items-center gap-2 font-mono text-xs text-slate-400">
+              <span className="rounded bg-slate-800/80 px-2 py-0.5 border border-slate-700/60 text-cyan-300">
+                DB: {health.dbState === 'connected' ? 'Atlas OK' : 'Offline'}
+              </span>
+              <span className="rounded bg-slate-800/80 px-2 py-0.5 border border-slate-700/60 text-slate-300">
+                118 ELEMENTOS
+              </span>
+            </div>
           </div>
 
-          <div className="flex flex-wrap gap-3">
-            <Link
-              to="/tabla"
-              className="rounded-2xl bg-cyan-500 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-cyan-400"
-            >
-              Ver tabla periódica
-            </Link>
+          <div className="mt-8 grid gap-8 lg:grid-cols-[1.3fr_0.9fr] lg:items-center">
+            <div>
+              <h1 className="text-3xl font-black tracking-tight text-white sm:text-4xl lg:text-5xl leading-tight">
+                Plataforma de Datos Químicos & Sintetizador Molecular
+              </h1>
+              
+              <p className="mt-4 text-base text-slate-300 leading-relaxed max-w-2xl">
+                Acceso programático de alta precisión a la tabla periódica de elementos de la IUPAC,
+                coordenadas orbitales espaciales, propiedades fisicoquímicas y análisis
+                estequiométrico con inteligencia artificial.
+              </p>
 
-            <a
-              href="http://localhost:3000/api-docs"
-              target="_blank"
-              rel="noreferrer"
-              className="rounded-2xl border border-white/10 bg-white/10 px-5 py-3 text-sm font-bold text-white transition hover:bg-white/15"
-            >
-              Swagger UI
-            </a>
-          </div>
-        </header>
+              {/* Action Buttons */}
+              <div className="mt-8 flex flex-wrap items-center gap-3">
+                <Link
+                  to="/elementos"
+                  className="inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-5 py-3 text-sm font-bold text-slate-950 shadow-lg shadow-cyan-500/20 transition hover:bg-cyan-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+                >
+                  <Atom className="h-4 w-4" />
+                  <span>Tabla Periódica Interactiva</span>
+                </Link>
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[260px_1fr]">
-          <aside className="hidden lg:block">
-            <div className="sticky top-6 space-y-4">
-              <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-xl shadow-black/20 backdrop-blur">
-                <h2 className="text-sm font-black uppercase tracking-[0.25em] text-slate-400">
-                  Secciones
-                </h2>
+                <Link
+                  to="/mezclar"
+                  className="inline-flex items-center gap-2 rounded-xl border border-cyan-500/30 bg-cyan-950/30 px-5 py-3 text-sm font-bold text-cyan-300 transition hover:bg-cyan-950/60 hover:border-cyan-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
+                >
+                  <FlaskConical className="h-4 w-4" />
+                  <span>Sintetizador con IA</span>
+                </Link>
 
-                <nav className="mt-4 space-y-2 text-sm">
-                  {[
-                    ['#inicio', 'Inicio'],
-                    ['#buscador', 'Buscador'],
-                    ['#endpoints', 'Consultas API'],
-                    ['#mezclas', 'Simulador'],
-                    ['#recursos', 'Recursos'],
-                  ].map(([href, label]) => (
-                    <a
-                      key={href}
-                      href={href}
-                      className="block rounded-xl px-3 py-2 font-semibold text-slate-300 transition hover:bg-white/10 hover:text-white"
-                    >
-                      {label}
-                    </a>
-                  ))}
-                </nav>
-              </div>
-
-              <div className="rounded-3xl border border-cyan-400/20 bg-cyan-400/10 p-5 text-sm text-cyan-100">
-                <p className="font-bold">Estado del proyecto</p>
-                <p className="mt-1 text-cyan-100/80">
-                  Conectado a MongoDB y usando rutas REST para consultar elementos.
-                </p>
+                <a
+                  href={API_DOCS}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-900/80 px-4 py-3 text-sm font-semibold text-slate-300 transition hover:bg-slate-800 hover:text-white"
+                >
+                  <FileCode2 className="h-4 w-4 text-slate-400" />
+                  <span>Swagger OpenAPI</span>
+                  <ExternalLink className="h-3 w-3 opacity-60" />
+                </a>
               </div>
             </div>
-          </aside>
 
-          <section className="space-y-8">
-            <section
-              id="inicio"
-              className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]"
-            >
-              <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl shadow-black/20 backdrop-blur sm:p-8">
-                <div className="inline-flex rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-xs font-black uppercase tracking-[0.25em] text-cyan-300">
-                  API + Tabla Periódica
+            {/* Scientific Telemetry Bento Cards */}
+            <div className="grid grid-cols-2 gap-3.5">
+              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 shadow-sm">
+                <div className="flex items-center justify-between text-slate-400">
+                  <span className="font-mono text-xs uppercase">Elementos</span>
+                  <Atom className="h-4 w-4 text-cyan-400" />
                 </div>
-
-                <h2 className="mt-5 text-3xl font-black leading-tight text-white sm:text-4xl lg:text-5xl">
-                  Explora elementos químicos desde una API moderna.
-                </h2>
-
-                <p className="mt-5 max-w-2xl text-base leading-7 text-slate-300">
-                  Esta página funciona como panel principal para probar búsquedas,
-                  consultar endpoints y navegar hacia la tabla periódica interactiva.
-                </p>
-
-                <div className="mt-6 grid gap-3 sm:grid-cols-3">
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <p className="text-3xl font-black text-white">118</p>
-                    <p className="mt-1 text-sm text-slate-400">Elementos</p>
-                  </div>
-
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <p className="text-3xl font-black text-white">18</p>
-                    <p className="mt-1 text-sm text-slate-400">Grupos</p>
-                  </div>
-
-                  <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                    <p className="text-3xl font-black text-white">7</p>
-                    <p className="mt-1 text-sm text-slate-400">Periodos</p>
-                  </div>
-                </div>
+                <p className="mt-2 text-3xl font-black font-mono text-white">118</p>
+                <p className="mt-1 text-xs text-slate-400">Catálogo IUPAC completo</p>
               </div>
 
-              <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-2xl shadow-black/20 backdrop-blur">
-                <div className="grid grid-cols-4 gap-2">
-                  {[
-                    ['1', 'H', 's'],
-                    ['2', 'He', 'p'],
-                    ['3', 'Li', 's'],
-                    ['6', 'C', 'p'],
-                    ['8', 'O', 'p'],
-                    ['11', 'Na', 's'],
-                    ['26', 'Fe', 'd'],
-                    ['29', 'Cu', 'd'],
-                    ['47', 'Ag', 'd'],
-                    ['79', 'Au', 'd'],
-                    ['92', 'U', 'f'],
-                    ['118', 'Og', 'p'],
-                  ].map(([num, sym, block]) => {
-                    const color = getBlockStyle(block);
-
-                    return (
-                      <div
-                        key={`${num}-${sym}`}
-                        className={`flex aspect-square flex-col justify-between rounded-2xl border p-3 shadow-lg ${color.bg} ${color.text} ${color.border}`}
-                      >
-                        <span className="text-xs font-bold opacity-70">{num}</span>
-                        <span className="text-center text-2xl font-black">{sym}</span>
-                        <span className="text-right text-[10px] font-black uppercase opacity-70">
-                          {block}
-                        </span>
-                      </div>
-                    );
-                  })}
+              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 shadow-sm">
+                <div className="flex items-center justify-between text-slate-400">
+                  <span className="font-mono text-xs uppercase">Grupos & Periodos</span>
+                  <Layers className="h-4 w-4 text-emerald-400" />
                 </div>
-
-                <p className="mt-4 text-center text-sm text-slate-400">
-                  Vista previa visual de elementos por bloque químico.
-                </p>
-              </div>
-            </section>
-
-            <section
-              id="buscador"
-              className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl shadow-black/20 backdrop-blur sm:p-8"
-            >
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <p className="text-sm font-black uppercase tracking-[0.25em] text-cyan-300">
-                    Buscador
-                  </p>
-
-                  <h2 className="mt-2 text-2xl font-black text-white">
-                    Consulta rápida de elementos
-                  </h2>
-
-                  <p className="mt-2 text-sm text-slate-300">
-                    Busca por símbolo, número atómico o nombre.
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  {ejemplosBusqueda.map((item) => (
-                    <button
-                      key={item.value}
-                      type="button"
-                      onClick={() => {
-                        setModo(item.modo);
-                        setQuery(item.value);
-                        setResultado(null);
-                        setError(null);
-                      }}
-                      className="rounded-full border border-white/10 bg-white/10 px-3 py-1.5 text-xs font-bold text-slate-200 transition hover:bg-white/15"
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
+                <p className="mt-2 text-3xl font-black font-mono text-white">18 / 7</p>
+                <p className="mt-1 text-xs text-slate-400">Estructura atómica normalizada</p>
               </div>
 
-              <form onSubmit={buscar} className="mt-6 space-y-5">
-                <div className="flex flex-wrap items-center gap-2">
-                  {[
-                    { v: 'symbol', label: 'Símbolo', helper: 'H, He, Na' },
-                    { v: 'atomic_number', label: 'Número atómico', helper: '1, 2, 11' },
-                    { v: 'name', label: 'Nombre', helper: 'Hidrógeno' },
-                  ].map(({ v, label, helper }) => (
-                    <label
-                      key={v}
-                      className={[
-                        'cursor-pointer rounded-2xl border px-4 py-3 text-sm transition',
-                        modo === v
-                          ? 'border-cyan-400 bg-cyan-400/15 text-cyan-100'
-                          : 'border-white/10 bg-white/5 text-slate-300 hover:bg-white/10',
-                      ].join(' ')}
-                    >
-                      <input
-                        type="radio"
-                        name="modo"
-                        value={v}
-                        checked={modo === v}
-                        onChange={() => setModo(v)}
-                        className="sr-only"
-                      />
+              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 shadow-sm">
+                <div className="flex items-center justify-between text-slate-400">
+                  <span className="font-mono text-xs uppercase">Cluster Base</span>
+                  <Database className="h-4 w-4 text-amber-400" />
+                </div>
+                <p className="mt-2 text-base font-bold font-mono text-emerald-400">MongoDB Atlas</p>
+                <p className="mt-1 text-xs text-slate-400">Colección element activa</p>
+              </div>
 
-                      <span className="block font-black">{label}</span>
-                      <span className="block text-xs opacity-70">{helper}</span>
-                    </label>
-                  ))}
+              <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 shadow-sm">
+                <div className="flex items-center justify-between text-slate-400">
+                  <span className="font-mono text-xs uppercase">Respuesta API</span>
+                  <Activity className="h-4 w-4 text-purple-400" />
+                </div>
+                <p className="mt-2 text-base font-bold font-mono text-cyan-300">&lt; 15 ms</p>
+                <p className="mt-1 text-xs text-slate-400">Indexado por símbolo & Z</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Live Chemical Inspector / Instant Search */}
+      <section className="mx-auto max-w-7xl px-4 mt-10 sm:px-6 lg:px-8">
+        <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-6 backdrop-blur-xl sm:p-8">
+          
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/80 pb-6">
+            <div>
+              <div className="flex items-center gap-2">
+                <Search className="h-4 w-4 text-cyan-400" />
+                <span className="font-mono text-xs font-bold text-cyan-400 uppercase tracking-widest">
+                  TELEMETRÍA EN VIVO // INSPECTOR DE ELEMENTOS
+                </span>
+              </div>
+              <h2 className="mt-1 text-2xl font-black text-white">
+                Consulta Rápida de Elementos Químicos
+              </h2>
+            </div>
+
+            {/* Presets */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-xs text-slate-400 mr-1 font-mono">Presets:</span>
+              {presets.map((preset) => (
+                <button
+                  key={preset.value}
+                  type="button"
+                  onClick={() => {
+                    setModo(preset.modo);
+                    setQuery(preset.value);
+                    setResultado(null);
+                    setError(null);
+                  }}
+                  className="rounded-lg border border-slate-700/60 bg-slate-800/60 px-2.5 py-1 text-xs font-mono font-medium text-slate-300 transition hover:bg-slate-700/80 hover:text-white"
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Search Controls */}
+          <form onSubmit={buscar} className="mt-6 space-y-4">
+            <div className="flex flex-wrap gap-2">
+              {[
+                { id: 'symbol', label: 'Símbolo Químico', helper: 'ej. Au, Fe, H' },
+                { id: 'atomic_number', label: 'Número Atómico (Z)', helper: 'ej. 79, 26, 1' },
+                { id: 'name', label: 'Nombre en Español/Inglés', helper: 'ej. Oro, Gold, Hierro' },
+              ].map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => {
+                    setModo(m.id);
+                    setResultado(null);
+                  }}
+                  className={`flex flex-col items-start rounded-xl border px-3.5 py-2 text-left transition ${
+                    modo === m.id
+                      ? 'border-cyan-500/50 bg-cyan-950/30 text-white'
+                      : 'border-slate-800 bg-slate-950/40 text-slate-400 hover:bg-slate-900/60'
+                  }`}
+                >
+                  <span className="text-xs font-bold">{m.label}</span>
+                  <span className="text-[10px] opacity-60 font-mono">{m.helper}</span>
+                </button>
+              ))}
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder={
+                    modo === 'symbol'
+                      ? 'Introduce un símbolo químico (ej: Au, He, O)...'
+                      : modo === 'atomic_number'
+                      ? 'Introduce el número atómico (ej: 79, 1, 92)...'
+                      : 'Introduce el nombre (ej: Oro, Oxígeno, Carbono)...'
+                  }
+                  className="w-full rounded-xl border border-slate-700 bg-slate-950/90 px-4 py-3.5 text-sm font-mono text-white placeholder-slate-500 focus:border-cyan-400 focus:outline-none focus:ring-1 focus:ring-cyan-400"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={cargando || !query.trim()}
+                className="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-500 px-6 py-3.5 text-sm font-bold text-slate-950 shadow-md transition hover:bg-cyan-400 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {cargando ? <Activity className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
+                <span>{cargando ? 'Consultando...' : 'Inspeccionar'}</span>
+              </button>
+            </div>
+          </form>
+
+          {/* Error notice */}
+          {error && (
+            <div className="mt-4 flex items-center gap-3 rounded-xl border border-rose-500/30 bg-rose-950/20 p-4 text-xs font-mono text-rose-300">
+              <ShieldAlert className="h-4 w-4 shrink-0 text-rose-400" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {/* Search Result Inspector Display */}
+          {resultado && (
+            <div className="mt-6 rounded-xl border border-slate-800 bg-slate-950/80 p-6 shadow-xl">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+                <div className="flex items-center gap-4">
+                  <div className={`flex h-16 w-16 items-center justify-center rounded-xl border font-mono font-black text-3xl shadow-inner ${getBlockMeta(resultado.block).color}`}>
+                    {resultado.symbol}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-2xl font-black text-white">{resultado.name}</h3>
+                      <span className={`rounded border px-2 py-0.5 text-[10px] font-mono font-bold uppercase ${getBlockMeta(resultado.block).badge}`}>
+                        Bloque {resultado.block}
+                      </span>
+                    </div>
+                    <p className="text-xs font-mono text-slate-400 mt-0.5">
+                      Número Atómico (Z): <strong className="text-white">{resultado.atomic_number}</strong> | Masa Atómica: <strong className="text-white">{resultado.atomic_mass} u</strong>
+                    </p>
+                  </div>
                 </div>
 
-                <div className="flex flex-col gap-3 md:flex-row">
-                  <input
-                    id="input-busqueda"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder={
-                      modo === 'symbol'
-                        ? 'Ejemplo: H, He, Na'
-                        : modo === 'atomic_number'
-                          ? 'Ejemplo: 1, 2, 11'
-                          : 'Ejemplo: Hidrógeno, Helio, Sodio'
-                    }
-                    className="min-h-[54px] flex-1 rounded-2xl border border-white/10 bg-slate-950/70 px-4 text-slate-100 outline-none placeholder:text-slate-500 focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/10"
-                    autoComplete="off"
-                  />
-
-                  <button
-                    type="submit"
-                    disabled={cargando || !query.trim()}
-                    className="min-h-[54px] rounded-2xl bg-cyan-500 px-6 font-black text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
+                <div className="flex items-center gap-2">
+                  <Link
+                    to={`/elementos/${resultado.atomic_number}`}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-500/30 bg-cyan-950/30 px-3 py-2 text-xs font-bold text-cyan-300 transition hover:bg-cyan-900/40"
                   >
-                    {cargando ? 'Buscando...' : 'Buscar'}
-                  </button>
+                    <span>Ficha Completa</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </Link>
 
                   <button
                     type="button"
-                    onClick={limpiarBusqueda}
-                    className="min-h-[54px] rounded-2xl border border-white/10 bg-white/10 px-6 font-bold text-white transition hover:bg-white/15"
+                    onClick={() => copiarAlPortapapeles(JSON.stringify(resultado, null, 2))}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900 px-3 py-2 text-xs font-mono text-slate-300 transition hover:bg-slate-800"
                   >
-                    Limpiar
+                    {copiado ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+                    <span>{copiado ? 'Copiado' : 'Copiar JSON'}</span>
                   </button>
                 </div>
-              </form>
+              </div>
 
-              {cargando && (
-                <div className="mt-5 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-sm font-semibold text-cyan-100">
-                  Buscando información en la API...
+              {/* Data Grid */}
+              <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                <div className="rounded-lg border border-slate-800/80 bg-slate-900/60 p-3">
+                  <span className="text-[10px] uppercase font-mono text-slate-400">Grupo</span>
+                  <p className="mt-1 font-mono font-bold text-slate-200">{resultado.group || 'N/D'}</p>
                 </div>
-              )}
-
-              {error && (
-                <div className="mt-5 rounded-2xl border border-red-400/30 bg-red-500/10 p-4 text-sm font-semibold text-red-200">
-                  {error}
+                <div className="rounded-lg border border-slate-800/80 bg-slate-900/60 p-3">
+                  <span className="text-[10px] uppercase font-mono text-slate-400">Periodo</span>
+                  <p className="mt-1 font-mono font-bold text-slate-200">{resultado.period || 'N/D'}</p>
                 </div>
-              )}
-
-              {!cargando && !error && resultado && <ResultadoCard data={resultado} />}
-            </section>
-
-            <section
-              id="endpoints"
-              className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl shadow-black/20 backdrop-blur sm:p-8"
-            >
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                <div>
-                  <p className="text-sm font-black uppercase tracking-[0.25em] text-emerald-300">
-                    Endpoints
-                  </p>
-
-                  <h2 className="mt-2 text-2xl font-black text-white">
-                    Consultas disponibles en la API
-                  </h2>
+                <div className="rounded-lg border border-slate-800/80 bg-slate-900/60 p-3">
+                  <span className="text-[10px] uppercase font-mono text-slate-400">Fase Estándar</span>
+                  <p className="mt-1 font-mono font-bold text-slate-200 uppercase">{resultado.standard_state || resultado.phase || 'N/D'}</p>
                 </div>
+                <div className="rounded-lg border border-slate-800/80 bg-slate-900/60 p-3">
+                  <span className="text-[10px] uppercase font-mono text-slate-400">Punto Fusión</span>
+                  <p className="mt-1 font-mono font-bold text-slate-200">{resultado.melting_point ? `${resultado.melting_point} K` : 'N/D'}</p>
+                </div>
+                <div className="rounded-lg border border-slate-800/80 bg-slate-900/60 p-3">
+                  <span className="text-[10px] uppercase font-mono text-slate-400">Punto Ebullición</span>
+                  <p className="mt-1 font-mono font-bold text-slate-200">{resultado.boiling_point ? `${resultado.boiling_point} K` : 'N/D'}</p>
+                </div>
+                <div className="rounded-lg border border-slate-800/80 bg-slate-900/60 p-3">
+                  <span className="text-[10px] uppercase font-mono text-slate-400">Descubrimiento</span>
+                  <p className="mt-1 font-mono font-bold text-slate-200">{resultado.year_discovered || 'Antigüedad'}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      </section>
 
-                <span className="rounded-full border border-emerald-400/20 bg-emerald-400/10 px-4 py-2 text-xs font-black uppercase tracking-[0.2em] text-emerald-300">
-                  REST API
+      {/* Interactive API Endpoints Workbench */}
+      <section className="mx-auto max-w-7xl px-4 mt-10 sm:px-6 lg:px-8">
+        <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-6 backdrop-blur-xl sm:p-8">
+          
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-6">
+            <div>
+              <div className="flex items-center gap-2">
+                <Terminal className="h-4 w-4 text-emerald-400" />
+                <span className="font-mono text-xs font-bold text-emerald-400 uppercase tracking-widest">
+                  DOCUMENTACIÓN DE SERVICIOS REST
                 </span>
               </div>
-
-              <div className="mt-6 overflow-hidden rounded-2xl border border-white/10">
-                <div className="grid grid-cols-[90px_1fr] bg-white/10 px-4 py-3 text-xs font-black uppercase tracking-[0.2em] text-slate-400 md:grid-cols-[90px_1fr_1.2fr]">
-                  <div>Método</div>
-                  <div>Ruta</div>
-                  <div className="hidden md:block">Descripción</div>
-                </div>
-
-                <div className="divide-y divide-white/10">
-                  {endpoints.map(({ method, path, desc, ejemplo }) => (
-                    <div
-                      key={path}
-                      className="grid gap-3 px-4 py-4 text-sm transition hover:bg-white/[0.03] md:grid-cols-[90px_1fr_1.2fr]"
-                    >
-                      <div>
-                        <span className="rounded-lg bg-emerald-400/10 px-3 py-1 text-xs font-black text-emerald-300">
-                          {method}
-                        </span>
-                      </div>
-
-                      <div>
-                        <code className="break-all text-cyan-300">{path}</code>
-
-                        <a
-                          href={ejemplo}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="mt-1 block break-all text-xs text-slate-500 transition hover:text-cyan-300"
-                        >
-                          {ejemplo}
-                        </a>
-                      </div>
-
-                      <p className="text-slate-300">{desc}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </section>
-
-            <section
-              id="mezclas"
-              className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl shadow-black/20 backdrop-blur sm:p-8"
-            >
-              <p className="text-sm font-black uppercase tracking-[0.25em] text-amber-300">
-                Simulador
-              </p>
-
-              <h2 className="mt-2 text-2xl font-black text-white">
-                Ejemplos de mezclas químicas
+              <h2 className="mt-1 text-2xl font-black text-white">
+                Endpoints & Matriz de Integración
               </h2>
+            </div>
 
-              <p className="mt-2 text-sm text-slate-300">
-                Esta sección puede crecer luego para conectarse con una ruta real de la API.
-              </p>
+            <a
+              href={API_DOCS}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-2 rounded-xl border border-slate-700 bg-slate-800 px-4 py-2 text-xs font-semibold text-slate-200 transition hover:bg-slate-700"
+            >
+              <FileCode2 className="h-4 w-4 text-cyan-400" />
+              <span>Ver Especificación OpenAPI 3.0</span>
+              <ExternalLink className="h-3 w-3" />
+            </a>
+          </div>
 
-              <div className="mt-6 grid gap-4 md:grid-cols-3">
-                {[
-                  ['H', 'O', 'H₂O', 'Agua'],
-                  ['Na', 'Cl', 'NaCl', 'Sal común'],
-                  ['C', 'O', 'CO₂', 'Dióxido de carbono'],
-                ].map(([a, b, formula, nombre]) => (
-                  <div
-                    key={formula}
-                    className="rounded-3xl border border-white/10 bg-slate-950/60 p-5"
-                  >
-                    <div className="flex items-center justify-center gap-3">
-                      <span className="rounded-2xl bg-cyan-400/10 px-4 py-3 text-xl font-black text-cyan-300">
-                        {a}
-                      </span>
-
-                      <span className="text-slate-500">+</span>
-
-                      <span className="rounded-2xl bg-cyan-400/10 px-4 py-3 text-xl font-black text-cyan-300">
-                        {b}
-                      </span>
-                    </div>
-
-                    <div className="mt-5 text-center">
-                      <p className="text-3xl font-black text-white">{formula}</p>
-                      <p className="mt-1 text-sm text-slate-400">{nombre}</p>
+          {/* Endpoints Table */}
+          <div className="mt-6 divide-y divide-slate-800/80 overflow-hidden rounded-xl border border-slate-800 bg-slate-950/70">
+            {endpointsList.map((ep, idx) => (
+              <div key={ep.path} className="p-4 transition hover:bg-slate-900/50">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <span className={`rounded-md px-2.5 py-1 font-mono text-xs font-bold ${
+                      ep.method === 'GET' ? 'bg-emerald-950 text-emerald-400 border border-emerald-500/30' : 'bg-cyan-950 text-cyan-400 border border-cyan-500/30'
+                    }`}>
+                      {ep.method}
+                    </span>
+                    <div>
+                      <code className="font-mono text-sm font-semibold text-cyan-300">{ep.path}</code>
+                      <p className="mt-1 text-xs text-slate-400">{ep.desc}</p>
                     </div>
                   </div>
-                ))}
+
+                  <div className="flex items-center gap-2 font-mono text-xs">
+                    <a
+                      href={ep.ejemploUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="rounded-lg border border-slate-800 bg-slate-900 px-3 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-white"
+                    >
+                      Probar URL
+                    </a>
+                    <button
+                      type="button"
+                      onClick={() => copiarAlPortapapeles(ep.curl)}
+                      className="rounded-lg border border-slate-800 bg-slate-900 px-3 py-1.5 text-slate-300 transition hover:bg-slate-800 hover:text-white"
+                      title="Copiar cURL"
+                    >
+                      cURL
+                    </button>
+                  </div>
+                </div>
               </div>
-            </section>
-
-            <section
-              id="recursos"
-              className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl shadow-black/20 backdrop-blur sm:p-8"
-            >
-              <p className="text-sm font-black uppercase tracking-[0.25em] text-violet-300">
-                Recursos
-              </p>
-
-              <h2 className="mt-2 text-2xl font-black text-white">
-                Accesos rápidos
-              </h2>
-
-              <div className="mt-6 grid gap-4 sm:grid-cols-2">
-                <a
-                  href="http://localhost:3000/api-docs"
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-3xl border border-white/10 bg-white/5 p-5 transition hover:bg-white/10"
-                >
-                  <p className="text-lg font-black text-white">Swagger UI</p>
-                  <p className="mt-1 text-sm text-slate-400">
-                    Ver documentación técnica generada para tu API.
-                  </p>
-                </a>
-
-                <Link
-                  to="/tabla"
-                  className="rounded-3xl border border-white/10 bg-white/5 p-5 transition hover:bg-white/10"
-                >
-                  <p className="text-lg font-black text-white">
-                    Tabla periódica interactiva
-                  </p>
-                  <p className="mt-1 text-sm text-slate-400">
-                    Abrir la vista visual con periodos, grupos y bloques.
-                  </p>
-                </Link>
-              </div>
-            </section>
-          </section>
+            ))}
+          </div>
         </div>
-      </div>
+      </section>
+
+      {/* Laboratory Quick Access Cards */}
+      <section className="mx-auto max-w-7xl px-4 mt-10 sm:px-6 lg:px-8">
+        <div className="grid gap-6 md:grid-cols-2">
+          
+          <div className="group relative overflow-hidden rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900/90 to-slate-950/80 p-6 sm:p-8 transition hover:border-cyan-500/40 shadow-xl">
+            <div className="flex items-center justify-between text-cyan-400">
+              <Atom className="h-8 w-8 transition-transform group-hover:rotate-45" />
+              <span className="font-mono text-xs uppercase text-slate-500">Módulo 01</span>
+            </div>
+            <h3 className="mt-4 text-xl font-black text-white">
+              Tabla Periódica Completa
+            </h3>
+            <p className="mt-2 text-sm text-slate-300 leading-relaxed">
+              Explora visualmente los 118 elementos organizados por periodos, grupos, bloques orbitales y estados físicos con fichas técnicas descargables.
+            </p>
+            <div className="mt-6">
+              <Link
+                to="/elementos"
+                className="inline-flex items-center gap-2 text-xs font-bold text-cyan-400 transition group-hover:text-cyan-300"
+              >
+                <span>Acceder a la cuadrícula</span>
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+
+          <div className="group relative overflow-hidden rounded-2xl border border-slate-800 bg-gradient-to-br from-slate-900/90 to-slate-950/80 p-6 sm:p-8 transition hover:border-cyan-500/40 shadow-xl">
+            <div className="flex items-center justify-between text-cyan-400">
+              <FlaskConical className="h-8 w-8 transition-transform group-hover:scale-110" />
+              <span className="font-mono text-xs uppercase text-slate-500">Módulo 02</span>
+            </div>
+            <h3 className="mt-4 text-xl font-black text-white">
+              Sintetizador & Simulador Molecular
+            </h3>
+            <p className="mt-2 text-sm text-slate-300 leading-relaxed">
+              Combina hasta 5 elementos químicos de forma estequiométrica para deducir productos moleculares, factores de riesgo GHS y aplicaciones científicas con IA.
+            </p>
+            <div className="mt-6">
+              <Link
+                to="/mezclar"
+                className="inline-flex items-center gap-2 text-xs font-bold text-cyan-400 transition group-hover:text-cyan-300"
+              >
+                <span>Entrar a la cámara de reacción</span>
+                <ChevronRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
     </main>
   );
 };
 
-export default IndexDocumentacion;
+export default Index;

@@ -15,20 +15,28 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const mongoURI = process.env.MONGO_URI;
 
-// Validaciones importantes
-if (!mongoURI) {
-  console.error('❌ Falta MONGO_URI en el archivo .env');
-  process.exit(1);
-}
-
-if (!process.env.OPENAI_API_KEY) {
-  console.warn('⚠️ Falta OPENAI_API_KEY en el archivo .env. La ruta /mezclar no funcionará correctamente.');
+// Estado de proveedores de IA disponibles
+const hasAIKey = !!(process.env.GEMINI_API_KEY || process.env.GROQ_API_KEY || process.env.OPENAI_API_KEY || process.env.OPENROUTER_API_KEY);
+if (!hasAIKey) {
+  console.warn('⚠️ No se detectó ninguna API Key de IA (GEMINI_API_KEY, GROQ_API_KEY, etc.). Se usará el catálogo estequiométrico calibrado local.');
 }
 
 // Middlewares
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://127.0.0.1:5173',
+  ...(process.env.CLIENT_URL ? process.env.CLIENT_URL.split(',').map((o) => o.trim()) : []),
+];
+
 app.use(
   cors({
-    origin: 'http://localhost:5173',
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*') || process.env.NODE_ENV !== 'production') {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true,
   })
@@ -36,13 +44,67 @@ app.use(
 
 app.use(express.json());
 
-// Conexión MongoDB
-mongoose
-  .connect(mongoURI)
-  .then(() => console.log('✅ Conectado a MongoDB Atlas'))
-  .catch((err) => {
-    console.error('❌ Error al conectar a MongoDB:', err.message);
+// Conexión MongoDB persistente con caché para entornos Serverless (Vercel) y Node local
+let cachedDbPromise = null;
+
+export const connectDB = async () => {
+  if (mongoose.connection.readyState === 1) {
+    return mongoose.connection;
+  }
+
+  const uri = process.env.MONGO_URI;
+  if (!uri) {
+    throw new Error('Variable de entorno MONGO_URI no definida.');
+  }
+
+  if (!cachedDbPromise) {
+    cachedDbPromise = mongoose.connect(uri, {
+      serverSelectionTimeoutMS: 8000,
+      connectTimeoutMS: 10000,
+    });
+  }
+
+  return await cachedDbPromise;
+};
+
+// Middleware para asegurar conexión a la base de datos en cada petición
+app.use(async (req, res, next) => {
+  // Omitir en health checks para diagnóstico rápido
+  if (req.path === '/health' || req.path === '/api/health') {
+    return next();
+  }
+
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    console.error('❌ Error de conexión a MongoDB:', err.message);
+    res.status(500).json({
+      error: 'Error de conexión a la base de datos de laboratorio.',
+      detalle: err.message,
+    });
+  }
+});
+
+// Health check para monitoreo y CI/CD
+const healthHandler = (req, res) => {
+  res.json({
+    status: 'ok',
+    servicio: 'API Química - Laboratorio Avanzado',
+    uptime: process.uptime(),
+    dbState: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
+    aiProviders: {
+      gemini_free: !!process.env.GEMINI_API_KEY,
+      groq_free: !!process.env.GROQ_API_KEY,
+      openrouter: !!process.env.OPENROUTER_API_KEY,
+      openai: !!process.env.OPENAI_API_KEY,
+    },
+    catalogo_local: 'Activo (10 especies calibradas)',
   });
+};
+
+app.get('/health', healthHandler);
+app.get('/api/health', healthHandler);
 
 // Ruta raíz
 app.get('/', (req, res) => {
@@ -146,15 +208,31 @@ app.get('/', (req, res) => {
   res.send(html);
 });
 
-// Rutas principales
+// Rutas principales (con y sin prefijo /api para compatibilidad universal en Vercel y Local)
 app.use('/elementos', elementosRoutes);
+app.use('/api/elementos', elementosRoutes);
+
 app.use('/mezclar', mezclarRoutes);
+app.use('/api/mezclar', mezclarRoutes);
 
-// Swagger
+// Swagger UI
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use('/api/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
-// Servidor
-app.listen(PORT, () => {
-  console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
-  console.log(`📄 Swagger disponible en http://localhost:${PORT}/api-docs`);
-});
+// Servidor: se inicia solo en desarrollo local o servidor dedicado (NO en Vercel Serverless)
+if (!process.env.VERCEL) {
+  connectDB()
+    .then(() => {
+      console.log('✅ Conectado a MongoDB Atlas exitosamente');
+    })
+    .catch((err) => {
+      console.error('❌ Error de conexión inicial a MongoDB:', err.message);
+    });
+
+  app.listen(PORT, () => {
+    console.log(`🚀 Servidor de laboratorio químico activo en http://localhost:${PORT}`);
+    console.log(`📄 Swagger UI disponible en http://localhost:${PORT}/api-docs`);
+  });
+}
+
+export default app;

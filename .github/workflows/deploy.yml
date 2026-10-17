@@ -1,0 +1,40 @@
+name: CI/CD - Despliegue Automático a Vercel
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    name: Compilar y Desplegar a Producción
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Clonar repositorio
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Configurar Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: 📦 Instalar dependencias raíz y backend
+        run: npm install
+
+      - name: 🏗️ Compilar Frontend de Laboratorio
+        run: npm run build:frontend
+
+      - name: 🔗 Vincular Proyecto Vercel
+        run: |
+          mkdir -p .vercel
+          echo '{"projectId":"${{ secrets.VERCEL_PROJECT_ID || 'prj_vXJmK2WuKnMwOY8P2K8eQXwDpmy7' }}","orgId":"${{ secrets.VERCEL_ORG_ID || 'team_Q1abnXdbi3cm1TOHDxMC1b10' }}","projectName":"api_quimica"}' > .vercel/project.json
+
+      - name: 🚀 Desplegar a Vercel (Producción)
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID || 'team_Q1abnXdbi3cm1TOHDxMC1b10' }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID || 'prj_vXJmK2WuKnMwOY8P2K8eQXwDpmy7' }}
+        run: |
+          npx vercel --prod --token ${{ secrets.VERCEL_TOKEN }} --yes

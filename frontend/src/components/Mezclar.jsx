@@ -1,17 +1,39 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  FlaskConical,
+  Atom,
+  Sparkles,
+  ShieldAlert,
+  AlertTriangle,
+  CheckCircle2,
+  X,
+  Plus,
+  Minus,
+  RefreshCw,
+  Info,
+  ChevronRight,
+  Activity,
+  Layers,
+  Thermometer,
+  Zap,
+  HelpCircle,
+} from 'lucide-react';
+import { API_ELEMENTOS, API_MEZCLAR } from '../config/api';
 
 function Mezclar() {
   const [elementos, setElementos] = useState([]);
-  const [elementosSeleccionados, setElementosSeleccionados] = useState(['', '']);
+  // Cada reactivo tiene { elemento: 'H', cantidad: 2 }
+  const [reactivos, setReactivos] = useState([
+    { elemento: 'H', cantidad: 2 },
+    { elemento: 'O', cantidad: 1 },
+  ]);
   const [resultado, setResultado] = useState(null);
   const [cargando, setCargando] = useState(true);
   const [procesandoIA, setProcesandoIA] = useState(false);
 
-  const API_ELEMENTOS = 'http://localhost:3000/elementos';
-  const API_MEZCLAR = 'http://localhost:3000/mezclar';
-
-  const MAX_ELEMENTOS = 5;
-  const MIN_ELEMENTOS = 2;
+  const MAX_REACTIVOS = 5;
+  const MIN_REACTIVOS = 2;
 
   useEffect(() => {
     fetch(API_ELEMENTOS)
@@ -25,78 +47,98 @@ function Mezclar() {
             block: el.block || 'unknown',
             group: el.group || '',
             period: el.period || '',
-            phase: el.phase || '',
+            cpk_hex_color: el.cpk_hex_color || 'cccccc',
           }))
           .filter((el) => el.symbol && el.atomic_number)
           .sort((a, b) => a.atomic_number - b.atomic_number);
 
         setElementos(normalizados);
       })
-      .catch((err) => {
-        console.error('❌ Error al cargar elementos:', err);
-      })
+      .catch((err) => console.error('❌ Error al cargar elementos:', err))
       .finally(() => setCargando(false));
   }, []);
 
   const getElemento = (symbol) => {
-    return elementos.find((el) => el.symbol === symbol);
+    return elementos.find((el) => el.symbol.toLowerCase() === String(symbol).toLowerCase());
   };
 
-  const elementosElegidos = useMemo(() => {
-    return elementosSeleccionados
-      .filter(Boolean)
-      .map((symbol) => getElemento(symbol))
-      .filter(Boolean);
-  }, [elementosSeleccionados, elementos]);
+  // Comparaciones estequiométricas directas sugeridas por el usuario (H2O vs HO vs H3O)
+  const estudiosEstequiometricos = [
+    {
+      titulo: 'Serie Hidrógeno - Oxígeno (H + O)',
+      opciones: [
+        { label: 'H₂O (Agua Neutra)', items: [{ elemento: 'H', cantidad: 2 }, { elemento: 'O', cantidad: 1 }] },
+        { label: 'HO• (Radical Hidroxilo)', items: [{ elemento: 'H', cantidad: 1 }, { elemento: 'O', cantidad: 1 }] },
+        { label: 'H₃O⁺ (Ion Hidronio)', items: [{ elemento: 'H', cantidad: 3 }, { elemento: 'O', cantidad: 1 }] },
+        { label: 'H₂O₂ (Peróxido de Hidrógeno)', items: [{ elemento: 'H', cantidad: 2 }, { elemento: 'O', cantidad: 2 }] },
+      ],
+    },
+    {
+      titulo: 'Serie Carbono - Oxígeno (C + O)',
+      opciones: [
+        { label: 'CO (Monóxido Tóxico)', items: [{ elemento: 'C', cantidad: 1 }, { elemento: 'O', cantidad: 1 }] },
+        { label: 'CO₂ (Dióxido Estable)', items: [{ elemento: 'C', cantidad: 1 }, { elemento: 'O', cantidad: 2 }] },
+      ],
+    },
+    {
+      titulo: 'Serie Nitrógeno - Hidrógeno (N + H)',
+      opciones: [
+        { label: 'NH₃ (Amoníaco Gas)', items: [{ elemento: 'N', cantidad: 1 }, { elemento: 'H', cantidad: 3 }] },
+        { label: 'NH₄⁺ (Ion Amonio Catiónico)', items: [{ elemento: 'N', cantidad: 1 }, { elemento: 'H', cantidad: 4 }] },
+      ],
+    },
+  ];
 
-  const actualizarElemento = (index, value) => {
-    const copia = [...elementosSeleccionados];
-    copia[index] = value;
-    setElementosSeleccionados(copia);
+  // Cálculo en tiempo real de la fórmula bruta ingresada
+  const formulaBrutaCalculada = useMemo(() => {
+    const ordenados = reactivos
+      .filter((r) => r.elemento)
+      .map((r) => `${r.elemento}${r.cantidad > 1 ? r.cantidad : ''}`)
+      .join('');
+    return ordenados || '—';
+  }, [reactivos]);
+
+  const actualizarElemento = (index, nuevoSimbolo) => {
+    const copia = [...reactivos];
+    copia[index].elemento = nuevoSimbolo;
+    setReactivos(copia);
     setResultado(null);
   };
 
-  const agregarElemento = () => {
-    if (elementosSeleccionados.length >= MAX_ELEMENTOS) return;
-    setElementosSeleccionados([...elementosSeleccionados, '']);
+  const modificarCantidad = (index, delta) => {
+    const copia = [...reactivos];
+    const nuevaCantidad = Math.max(1, Math.min(12, copia[index].cantidad + delta));
+    copia[index].cantidad = nuevaCantidad;
+    setReactivos(copia);
     setResultado(null);
   };
 
-  const quitarElemento = (index) => {
-    if (elementosSeleccionados.length <= MIN_ELEMENTOS) return;
+  const agregarReactivo = () => {
+    if (reactivos.length >= MAX_REACTIVOS) return;
+    setReactivos([...reactivos, { elemento: '', cantidad: 1 }]);
+    setResultado(null);
+  };
 
-    const copia = elementosSeleccionados.filter((_, i) => i !== index);
-    setElementosSeleccionados(copia);
+  const quitarReactivo = (index) => {
+    if (reactivos.length <= MIN_REACTIVOS) return;
+    const copia = reactivos.filter((_, i) => i !== index);
+    setReactivos(copia);
+    setResultado(null);
+  };
+
+  const cargarEstudio = (items) => {
+    setReactivos(items);
     setResultado(null);
   };
 
   const mezclarElementos = async () => {
-    const seleccionados = elementosSeleccionados.filter(Boolean);
-    const unicos = [...new Set(seleccionados)];
+    const filtrados = reactivos.filter((r) => r.elemento);
 
-    if (seleccionados.length < MIN_ELEMENTOS) {
+    if (filtrados.length < MIN_REACTIVOS) {
       setResultado({
         error: true,
-        titulo: 'Selecciona al menos dos elementos',
-        mensaje: 'Debes elegir mínimo 2 elementos para realizar la mezcla.',
-      });
-      return;
-    }
-
-    if (unicos.length < MIN_ELEMENTOS) {
-      setResultado({
-        error: true,
-        titulo: 'Elementos repetidos',
-        mensaje: 'Selecciona al menos dos elementos diferentes.',
-      });
-      return;
-    }
-
-    if (unicos.length > MAX_ELEMENTOS) {
-      setResultado({
-        error: true,
-        titulo: 'Demasiados elementos',
-        mensaje: `Solo puedes mezclar un máximo de ${MAX_ELEMENTOS} elementos.`,
+        titulo: 'Reactivos insuficientes',
+        mensaje: 'Debes seleccionar al menos dos elementos químicos distintos con sus cantidades.',
       });
       return;
     }
@@ -111,47 +153,23 @@ function Mezclar() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          elementos: unicos,
+          reactivos: filtrados,
+          elementos: filtrados.map((r) => r.elemento),
         }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || 'Error al procesar la mezcla');
+        throw new Error(data.detalle || data.error || 'Error al procesar la síntesis');
       }
 
-      const primerCompuesto = data.compuestos_posibles?.[0];
-
-      setResultado({
-        error: false,
-        conocido: data.posible,
-        formula:
-          primerCompuesto?.formula ||
-          data.resultado ||
-          unicos.join(''),
-        formula_html: primerCompuesto?.formula_html || '',
-        nombre: primerCompuesto?.nombre || 'Resultado generado por IA',
-        descripcion:
-          data.descripcion ||
-          primerCompuesto?.descripcion ||
-          'Sin descripción disponible.',
-        tipo: primerCompuesto?.tipo || 'Análisis químico',
-        componentes: primerCompuesto?.componentes || [],
-        nivel_peligro: data.nivel_peligro || 'desconocido',
-        riesgos: data.riesgos || [],
-        advertencia_seguridad: data.advertencia_seguridad || '',
-        elementos_similares: data.elementos_similares || [],
-        sugerencias_seguras: data.sugerencias_seguras || [],
-        compuestos_posibles: data.compuestos_posibles || [],
-        nota: data.nota || '',
-      });
+      setResultado(data);
     } catch (err) {
-      console.error('❌ Error al consultar IA:', err);
-
+      console.error('❌ Error al procesar la síntesis:', err);
       setResultado({
         error: true,
-        titulo: 'Error al consultar la IA',
+        titulo: 'Aviso del Servidor Químico',
         mensaje: err.message,
       });
     } finally {
@@ -159,576 +177,417 @@ function Mezclar() {
     }
   };
 
-  const limpiar = () => {
-    setElementosSeleccionados(['', '']);
-    setResultado(null);
-  };
-
-  const cargarEjemplo = (lista) => {
-    setElementosSeleccionados(lista);
-    setResultado(null);
-  };
-
-  const getBlockStyle = (block) => {
-    switch (block) {
-      case 's':
-        return 'bg-rose-100 text-rose-950 border-rose-300';
-      case 'p':
-        return 'bg-sky-100 text-sky-950 border-sky-300';
-      case 'd':
-        return 'bg-emerald-100 text-emerald-950 border-emerald-300';
-      case 'f':
-        return 'bg-amber-100 text-amber-950 border-amber-300';
-      default:
-        return 'bg-slate-100 text-slate-950 border-slate-300';
-    }
-  };
-
-  const getPeligroClass = (nivel) => {
-    switch (nivel) {
+  const getHazardBadge = (nivel) => {
+    switch (nivel?.toLowerCase()) {
       case 'alto':
-        return 'text-red-300 bg-red-500/10 border-red-400/30';
+      case 'extremo':
+        return {
+          bg: 'bg-rose-950/40 border-rose-500/50 text-rose-300',
+          dot: 'bg-rose-500',
+          label: 'PELIGRO ALTO / REACTIVO',
+        };
       case 'medio':
-        return 'text-amber-300 bg-amber-500/10 border-amber-400/30';
-      case 'bajo':
-        return 'text-emerald-300 bg-emerald-500/10 border-emerald-400/30';
+        return {
+          bg: 'bg-amber-950/40 border-amber-500/50 text-amber-300',
+          dot: 'bg-amber-500',
+          label: 'PRECAUCIÓN / MODERADO',
+        };
       default:
-        return 'text-slate-300 bg-white/5 border-white/10';
+        return {
+          bg: 'bg-emerald-950/40 border-emerald-500/50 text-emerald-300',
+          dot: 'bg-emerald-500',
+          label: 'ESTABLE / RIESGO BAJO',
+        };
     }
-  };
-
-  const ElementCard = ({ elemento, label, index }) => {
-    if (!elemento) {
-      return (
-        <div className="flex min-h-[180px] items-center justify-center rounded-3xl border border-dashed border-white/15 bg-white/[0.03] p-6 text-center">
-          <div>
-            <p className="text-sm font-black uppercase tracking-[0.25em] text-slate-500">
-              {label}
-            </p>
-            <p className="mt-2 text-sm text-slate-400">
-              Selecciona un elemento
-            </p>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="relative rounded-3xl border border-white/10 bg-white/[0.04] p-5 shadow-xl shadow-black/20 backdrop-blur">
-        <p className="text-sm font-black uppercase tracking-[0.25em] text-cyan-300">
-          {label}
-        </p>
-
-        {elementosSeleccionados.length > MIN_ELEMENTOS && (
-          <button
-            type="button"
-            onClick={() => quitarElemento(index)}
-            disabled={procesandoIA}
-            className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full border border-red-400/30 bg-red-500/10 text-red-200 transition hover:bg-red-500/20 disabled:opacity-50"
-            title="Quitar elemento"
-          >
-            ×
-          </button>
-        )}
-
-        <div className="mt-4 flex items-center gap-4">
-          <div
-            className={`flex h-24 w-24 shrink-0 flex-col items-center justify-center rounded-3xl border shadow-lg ${getBlockStyle(
-              elemento.block
-            )}`}
-          >
-            <span className="text-xs font-bold opacity-70">
-              {elemento.atomic_number}
-            </span>
-
-            <span className="text-4xl font-black leading-none">
-              {elemento.symbol}
-            </span>
-
-            <span className="text-[10px] font-black uppercase opacity-70">
-              {elemento.block}
-            </span>
-          </div>
-
-          <div>
-            <h3 className="text-2xl font-black text-white">
-              {elemento.name || elemento.symbol}
-            </h3>
-
-            <p className="mt-1 text-sm text-slate-400">
-              Grupo {elemento.group || 'N/D'} · Periodo{' '}
-              {elemento.period || 'N/D'}
-            </p>
-
-            <p className="mt-1 text-sm text-slate-400">
-              Estado: {elemento.phase || 'No disponible'}
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const SelectElemento = ({ value, index }) => {
-    const seleccionadosEnOtros = elementosSeleccionados.filter(
-      (item, i) => item && i !== index
-    );
-
-    return (
-      <div>
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <label className="block text-sm font-bold text-slate-300">
-            Elemento {index + 1}
-          </label>
-
-          {elementosSeleccionados.length > MIN_ELEMENTOS && (
-            <button
-              type="button"
-              onClick={() => quitarElemento(index)}
-              disabled={procesandoIA}
-              className="text-xs font-bold text-red-300 transition hover:text-red-200 disabled:opacity-50"
-            >
-              Quitar
-            </button>
-          )}
-        </div>
-
-        <select
-          value={value}
-          onChange={(e) => actualizarElemento(index, e.target.value)}
-          disabled={procesandoIA}
-          className="h-14 w-full rounded-2xl border border-white/10 bg-slate-950/70 px-4 text-slate-100 outline-none focus:border-cyan-400 focus:ring-4 focus:ring-cyan-400/10 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <option value="">Selecciona un elemento</option>
-
-          {elementos.map((el) => (
-            <option
-              key={`${index}-${el.atomic_number}`}
-              value={el.symbol}
-              disabled={seleccionadosEnOtros.includes(el.symbol)}
-            >
-              {el.atomic_number}. {el.name || el.symbol} ({el.symbol})
-            </option>
-          ))}
-        </select>
-      </div>
-    );
   };
 
   return (
-    <main className="min-h-screen bg-[#07111f] text-slate-100">
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
-        <div className="absolute -left-24 top-20 h-72 w-72 rounded-full bg-cyan-500/20 blur-3xl" />
-        <div className="absolute right-0 top-40 h-96 w-96 rounded-full bg-emerald-500/10 blur-3xl" />
-        <div className="absolute bottom-0 left-1/2 h-80 w-80 rounded-full bg-amber-500/10 blur-3xl" />
-      </div>
+    <main className="min-h-screen bg-[#070d18] bg-lab-pattern bg-radial-gradient text-slate-100 pb-20">
+      
+      {/* Top Banner */}
+      <section className="mx-auto max-w-7xl px-4 pt-10 sm:px-6 lg:px-8">
+        <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-6 backdrop-blur-xl sm:p-10 shadow-2xl">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800/80 pb-6">
+            <div className="flex items-center gap-3">
+              <FlaskConical className="h-5 w-5 text-cyan-400" />
+              <span className="font-mono text-xs font-bold text-cyan-400 uppercase tracking-widest">
+                CÁMARA ESTEQUIOMÉTRICA // SIMULADOR DE ESPECIES & IONES
+              </span>
+            </div>
 
-      <section className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="mb-8 rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl shadow-black/20 backdrop-blur sm:p-8">
-          <p className="text-sm font-black uppercase tracking-[0.3em] text-cyan-300">
-            Laboratorio químico con IA
-          </p>
+            <div className="flex items-center gap-2 font-mono text-xs text-slate-400">
+              <span className="rounded bg-slate-800/80 px-2 py-0.5 border border-slate-700/60 text-cyan-300">
+                PROPORCIÓN ESTEQUIOMÉTRICA EXACTA
+              </span>
+              <span className="rounded bg-slate-800/80 px-2 py-0.5 border border-slate-700/60 text-emerald-400">
+                CALIBRADO IUPAC
+              </span>
+            </div>
+          </div>
 
-          <h1 className="mt-3 text-3xl font-black tracking-tight text-white sm:text-4xl lg:text-5xl">
-            Mezclador de elementos
-          </h1>
+          <div className="mt-6 max-w-3xl">
+            <h1 className="text-3xl font-black text-white sm:text-4xl">
+              Sintetizador Estequiométrico & Análisis de Especies
+            </h1>
+            <p className="mt-3 text-sm text-slate-300 leading-relaxed">
+              Define cantidades atómicas exactas (ej. <strong>H:1 + O:1</strong> vs <strong>H:2 + O:1</strong> vs <strong>H:3 + O:1</strong>)
+              para discernir entre moléculas neutras ($H_2O$), especies radicalarias ($HO^\bullet$) o iones poliatómicos en solución ($H_3O^+$).
+            </p>
+          </div>
 
-          <p className="mt-4 max-w-3xl text-base leading-7 text-slate-300">
-            Selecciona entre 2 y 5 elementos químicos. La IA analizará posibles
-            compuestos, composición molecular, riesgos y sugerencias educativas
-            seguras.
-          </p>
+          {/* Quick Comparative Series (H2O vs HO vs H3O) */}
+          <div className="mt-6 space-y-3 pt-4 border-t border-slate-800/60">
+            <span className="text-xs font-mono text-slate-400 block uppercase tracking-wider">
+              Series de Estudio Comparativo (Haz clic para cargar estequiometría):
+            </span>
+
+            <div className="space-y-2">
+              {estudiosEstequiometricos.map((serie) => (
+                <div key={serie.titulo} className="flex flex-wrap items-center gap-2">
+                  <span className="text-[11px] font-mono text-cyan-400/80 min-w-[200px] font-semibold">
+                    {serie.titulo}:
+                  </span>
+                  {serie.opciones.map((op) => (
+                    <button
+                      key={op.label}
+                      type="button"
+                      onClick={() => cargarEstudio(op.items)}
+                      className="rounded-lg border border-slate-700/60 bg-slate-800/70 px-2.5 py-1 text-xs font-mono font-medium text-slate-200 transition hover:border-cyan-500/50 hover:bg-slate-700 hover:text-white"
+                    >
+                      {op.label}
+                    </button>
+                  ))}
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
+      </section>
 
-        <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
-          <section className="space-y-6">
-            <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl shadow-black/20 backdrop-blur">
-              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+      {/* Reagent Chamber / Interactive Stoichiometric Workbench */}
+      <section className="mx-auto max-w-7xl px-4 mt-8 sm:px-6 lg:px-8">
+        <div className="rounded-2xl border border-slate-800/80 bg-slate-900/60 p-6 backdrop-blur-xl sm:p-8">
+          
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+            <div>
+              <h2 className="text-sm font-mono font-bold text-slate-400 uppercase tracking-widest">
+                RACK DE REACTIVOS // COEFICIENTES ATÓMICOS
+              </h2>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Ajusta el multiplicador numérico para deducir compuestos, iones o radicales libres.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-2 rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-1.5 font-mono text-xs">
+              <span className="text-slate-400">Fórmula ingresada:</span>
+              <strong className="text-cyan-300 text-sm tracking-wide">{formulaBrutaCalculada}</strong>
+            </div>
+          </div>
+
+          {/* Slot Grid with Multipliers */}
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+            {reactivos.map((r, idx) => {
+              const elInfo = getElemento(r.elemento);
+
+              return (
+                <div
+                  key={idx}
+                  className="relative rounded-xl border border-slate-800 bg-slate-950/80 p-4 transition shadow-sm hover:border-slate-700"
+                >
+                  <div className="flex items-center justify-between text-xs font-mono text-slate-400 mb-2">
+                    <span className="font-semibold text-slate-300">Reactivo #{idx + 1}</span>
+                    {reactivos.length > MIN_REACTIVOS && (
+                      <button
+                        type="button"
+                        onClick={() => quitarReactivo(idx)}
+                        className="rounded p-0.5 text-slate-500 hover:text-rose-400 transition"
+                        title="Quitar reactivo"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Dropdown selector */}
+                  <select
+                    value={r.elemento}
+                    onChange={(e) => actualizarElemento(idx, e.target.value)}
+                    className="w-full rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 text-sm font-mono text-white focus:border-cyan-400 focus:outline-none"
+                  >
+                    <option value="">Seleccionar elemento...</option>
+                    {elementos.map((el) => (
+                      <option key={el.symbol} value={el.symbol}>
+                        {el.symbol} - {el.name} (Z={el.atomic_number})
+                      </option>
+                    ))}
+                  </select>
+
+                  {/* Stoichiometric Multiplier Stepper (- 1 +) */}
+                  <div className="mt-3 pt-3 border-t border-slate-800/80">
+                    <span className="text-[10px] font-mono uppercase text-slate-400 block mb-1.5">
+                      Subíndice / Cantidad de Átomos:
+                    </span>
+                    
+                    <div className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900/90 p-1">
+                      <button
+                        type="button"
+                        onClick={() => modificarCantidad(idx, -1)}
+                        className="flex h-7 w-7 items-center justify-center rounded bg-slate-800 text-slate-200 hover:bg-slate-700 transition"
+                        title="Reducir átomos"
+                      >
+                        <Minus className="h-3 w-3" />
+                      </button>
+
+                      <span className="font-mono text-sm font-black text-cyan-300 px-2">
+                        × {r.cantidad}
+                      </span>
+
+                      <button
+                        type="button"
+                        onClick={() => modificarCantidad(idx, 1)}
+                        className="flex h-7 w-7 items-center justify-center rounded bg-slate-800 text-slate-200 hover:bg-slate-700 transition"
+                        title="Aumentar átomos"
+                      >
+                        <Plus className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Element preview chip */}
+                  {elInfo ? (
+                    <div className="mt-3 flex items-center gap-2.5 pt-2 border-t border-slate-800/60">
+                      <div
+                        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-slate-700 font-mono font-bold text-white shadow-inner"
+                        style={{ backgroundColor: `#${elInfo.cpk_hex_color}25` }}
+                      >
+                        {elInfo.symbol}
+                      </div>
+                      <div className="overflow-hidden">
+                        <p className="text-xs font-bold text-white truncate">{elInfo.name}</p>
+                        <p className="text-[10px] font-mono text-slate-400">
+                          Bloque {elInfo.block} | G{elInfo.group}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-3 pt-2 text-center text-[11px] font-mono text-slate-500">
+                      Ranura disponible
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {/* Add slot button */}
+            {reactivos.length < MAX_REACTIVOS && (
+              <button
+                type="button"
+                onClick={agregarReactivo}
+                className="flex flex-col items-center justify-center rounded-xl border border-dashed border-slate-800 bg-slate-950/40 p-6 text-slate-400 transition hover:border-cyan-500/40 hover:bg-slate-900/40 hover:text-cyan-300 min-h-[170px]"
+              >
+                <Plus className="h-5 w-5 mb-1" />
+                <span className="text-xs font-mono font-semibold">+ Añadir Elemento</span>
+              </button>
+            )}
+          </div>
+
+          {/* Trigger button */}
+          <div className="mt-8 flex flex-wrap items-center justify-between gap-4 border-t border-slate-800/80 pt-6">
+            <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
+              <Sparkles className="h-4 w-4 text-cyan-400" />
+              <span>
+                Resolución instantánea con catálogo termodinámico y motor molecular IA.
+              </span>
+            </div>
+
+            <button
+              type="button"
+              disabled={procesandoIA}
+              onClick={mezclarElementos}
+              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-400 px-6 py-3.5 text-sm font-black text-slate-950 shadow-lg shadow-cyan-500/20 transition hover:from-cyan-400 hover:to-emerald-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {procesandoIA ? (
+                <>
+                  <Activity className="h-4 w-4 animate-spin" />
+                  <span>Sintetizando Estequiometría...</span>
+                </>
+              ) : (
+                <>
+                  <FlaskConical className="h-4 w-4" />
+                  <span>Analizar Estructura Molecular</span>
+                </>
+              )}
+            </button>
+          </div>
+
+        </div>
+      </section>
+
+      {/* Results Section */}
+      {resultado && (
+        <section className="mx-auto max-w-7xl px-4 mt-8 sm:px-6 lg:px-8">
+          {resultado.error ? (
+            <div className="rounded-2xl border border-rose-500/40 bg-rose-950/20 p-6 backdrop-blur-xl">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 shrink-0 text-rose-400 mt-0.5" />
                 <div>
-                  <h2 className="text-2xl font-black text-white">
-                    Selecciona los elementos
-                  </h2>
+                  <h3 className="text-base font-bold text-rose-200">{resultado.titulo}</h3>
+                  <p className="mt-1 text-sm text-rose-300/90">{resultado.mensaje}</p>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-slate-800 bg-slate-900/80 p-6 backdrop-blur-xl sm:p-8 shadow-2xl">
+              
+              {/* Result Header */}
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
+                <div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-xs uppercase tracking-widest text-cyan-400 font-bold">
+                      ESPECIE QUÍMICA DEDUCIDA // IUPAC
+                    </span>
+                    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-mono font-bold ${getHazardBadge(resultado.nivel_peligro).bg}`}>
+                      <span className={`h-1.5 w-1.5 rounded-full ${getHazardBadge(resultado.nivel_peligro).dot}`} />
+                      {getHazardBadge(resultado.nivel_peligro).label}
+                    </span>
+                  </div>
 
-                  <p className="mt-2 text-sm text-slate-400">
-                    Puedes elegir mínimo {MIN_ELEMENTOS} y máximo {MAX_ELEMENTOS}{' '}
-                    elementos. La cantidad de átomos la calcula la IA según la
-                    fórmula química.
+                  <h3 className="mt-2 text-3xl sm:text-4xl font-black text-white">
+                    {resultado.nombre}
+                  </h3>
+                  
+                  <div className="mt-2 flex flex-wrap items-center gap-3">
+                    <span
+                      className="text-3xl font-mono font-bold text-cyan-300"
+                      dangerouslySetInnerHTML={{ __html: resultado.formula_html || resultado.resultado }}
+                    />
+                    <span className="rounded-lg border border-slate-700 bg-slate-800 px-2.5 py-1 font-mono text-xs text-slate-300 font-semibold">
+                      {resultado.tipo_especie || resultado.tipo}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-4 font-mono text-xs md:text-right">
+                  <span className="text-slate-500 block uppercase text-[10px]">Estado Termodinámico</span>
+                  <span className="font-bold text-sm text-emerald-400 block mt-0.5">
+                    {resultado.estabilidad || (resultado.posible ? 'Estable' : 'Inestable')}
+                  </span>
+                  <span className="text-[10px] text-slate-400 mt-1 block">
+                    Origen: {resultado.origen_datos === 'catalogo_estequiometrico_calibrado' ? 'Base Local Calibrada' : 'Simulación IA'}
+                  </span>
+                </div>
+              </div>
+
+              {/* Comparative Contextual Analysis (Answers user requirement directly!) */}
+              {resultado.comparacion_contextual && (
+                <div className="mt-6 rounded-xl border border-cyan-500/30 bg-cyan-950/20 p-4 font-mono text-xs text-cyan-200">
+                  <div className="flex items-start gap-2.5">
+                    <Info className="h-4 w-4 shrink-0 text-cyan-400 mt-0.5" />
+                    <div>
+                      <strong className="block text-cyan-300 font-bold uppercase text-[11px]">
+                        Estudio Comparativo de Estequiometría & Enlace
+                      </strong>
+                      <p className="mt-1 leading-relaxed opacity-95">
+                        {resultado.comparacion_contextual}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Physical-chemical Description */}
+              <div className="mt-6">
+                <h4 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-widest">
+                  Análisis Físicoquímico Detallado
+                </h4>
+                <p className="mt-2 text-sm text-slate-200 leading-relaxed max-w-4xl">
+                  {resultado.descripcion}
+                </p>
+              </div>
+
+              {/* Physical Chemistry Metrics Bento */}
+              <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-3 font-mono text-xs">
+                <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3.5">
+                  <span className="text-[10px] uppercase text-slate-500 block">Geometría Molecular</span>
+                  <p className="mt-1 font-bold text-white text-sm">
+                    {resultado.geometria_molecular || 'Diatómica / Lineal'}
                   </p>
                 </div>
 
-                <div className="rounded-2xl border border-cyan-400/20 bg-cyan-400/10 px-4 py-3 text-sm text-cyan-100">
-                  {elementosSeleccionados.filter(Boolean).length} / {MAX_ELEMENTOS}{' '}
-                  seleccionados
+                <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3.5">
+                  <span className="text-[10px] uppercase text-slate-500 block">Momento Dipolar</span>
+                  <p className="mt-1 font-bold text-cyan-300 text-sm">
+                    {resultado.momento_dipolar || 'En estudio'}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-3.5">
+                  <span className="text-[10px] uppercase text-slate-500 block">Entalpía de Formación (ΔH°f)</span>
+                  <p className="mt-1 font-bold text-emerald-400 text-sm">
+                    {resultado.entalpia_formacion || 'Exotérmica'}
+                  </p>
                 </div>
               </div>
 
-              {cargando ? (
-                <div className="mt-6 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-cyan-100">
-                  Cargando elementos...
-                </div>
-              ) : (
-                <div className="mt-6 grid gap-4 md:grid-cols-2">
-                  {elementosSeleccionados.map((value, index) => (
-                    <SelectElemento
-                      key={`select-${index}`}
-                      value={value}
-                      index={index}
-                    />
-                  ))}
-                </div>
-              )}
-
-              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                <button
-                  type="button"
-                  onClick={mezclarElementos}
-                  disabled={cargando || procesandoIA}
-                  className="min-h-[54px] rounded-2xl bg-cyan-500 px-6 font-black text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {procesandoIA ? 'Analizando con IA...' : 'Mezclar elementos'}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={agregarElemento}
-                  disabled={
-                    cargando ||
-                    procesandoIA ||
-                    elementosSeleccionados.length >= MAX_ELEMENTOS
-                  }
-                  className="min-h-[54px] rounded-2xl border border-emerald-400/30 bg-emerald-400/10 px-6 font-bold text-emerald-200 transition hover:bg-emerald-400/20 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  + Agregar elemento
-                </button>
-
-                <button
-                  type="button"
-                  onClick={limpiar}
-                  disabled={procesandoIA}
-                  className="min-h-[54px] rounded-2xl border border-white/10 bg-white/10 px-6 font-bold text-white transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Limpiar
-                </button>
-              </div>
-
-              {procesandoIA && (
-                <div className="mt-4 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4 text-sm font-semibold text-cyan-100">
-                  Consultando OpenAI para analizar posibles compuestos,
-                  composición molecular, riesgos y sugerencias seguras...
-                </div>
-              )}
-            </div>
-
-            {elementosElegidos.length > 0 && (
-              <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-5 shadow-2xl shadow-black/20 backdrop-blur">
-                <p className="mb-5 text-sm font-black uppercase tracking-[0.25em] text-cyan-300">
-                  Elementos seleccionados
-                </p>
-
-                <div className="grid gap-5 md:grid-cols-2">
-                  {elementosSeleccionados.map((symbol, index) => (
-                    <ElementCard
-                      key={`card-${index}-${symbol || 'empty'}`}
-                      elemento={getElemento(symbol)}
-                      label={`Elemento ${index + 1}`}
-                      index={index}
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {resultado && (
-              <div
-                className={[
-                  'rounded-3xl border p-6 shadow-2xl shadow-black/20 backdrop-blur sm:p-8',
-                  resultado.error
-                    ? 'border-red-400/30 bg-red-500/10'
-                    : 'border-emerald-400/30 bg-emerald-400/10',
-                ].join(' ')}
-              >
-                {resultado.error ? (
-                  <>
-                    <p className="text-sm font-black uppercase tracking-[0.25em] text-red-300">
-                      Aviso
-                    </p>
-
-                    <h2 className="mt-2 text-2xl font-black text-white">
-                      {resultado.titulo}
-                    </h2>
-
-                    <p className="mt-3 text-red-100">{resultado.mensaje}</p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm font-black uppercase tracking-[0.25em] text-emerald-300">
-                      Resultado de la mezcla
-                    </p>
-
-                    <div className="mt-5 flex flex-col gap-6 md:flex-row md:items-start">
-                      <div className="flex h-36 w-36 shrink-0 flex-col items-center justify-center rounded-3xl border border-emerald-300/30 bg-emerald-300/15 text-center shadow-xl">
-                        <span
-                          className="text-4xl font-black text-white"
-                          dangerouslySetInnerHTML={
-                            resultado.formula_html
-                              ? { __html: resultado.formula_html }
-                              : undefined
-                          }
-                        >
-                          {!resultado.formula_html ? resultado.formula : null}
-                        </span>
-
-                        <span className="mt-2 text-xs font-bold uppercase tracking-[0.2em] text-emerald-200">
-                          Fórmula
-                        </span>
-                      </div>
-
-                      <div className="flex-1">
-                        <h2 className="text-3xl font-black text-white">
-                          {resultado.nombre}
-                        </h2>
-
-                        <p className="mt-3 max-w-2xl text-slate-200">
-                          {resultado.descripcion}
-                        </p>
-
-                        {resultado.componentes?.length > 0 && (
-                          <div className="mt-5 rounded-2xl border border-cyan-400/30 bg-cyan-400/10 p-4 text-sm text-cyan-100">
-                            <p className="font-black text-cyan-200">
-                              Composición molecular
-                            </p>
-
-                            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-                              {resultado.componentes.map((item, index) => (
-                                <div
-                                  key={`${item.elemento}-${index}`}
-                                  className="rounded-xl border border-white/10 bg-white/5 p-3"
-                                >
-                                  <p className="text-lg font-black text-white">
-                                    {item.cantidad} × {item.elemento}
-                                  </p>
-
-                                  <p className="text-xs text-cyan-100/80">
-                                    {item.nombre}
-                                  </p>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                          <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                            <p className="text-xs text-slate-400">Tipo</p>
-
-                            <p className="mt-1 font-bold text-white">
-                              {resultado.tipo}
-                            </p>
-                          </div>
-
-                          <div
-                            className={[
-                              'rounded-2xl border p-4',
-                              getPeligroClass(resultado.nivel_peligro),
-                            ].join(' ')}
-                          >
-                            <p className="text-xs opacity-80">
-                              Nivel de peligro
-                            </p>
-
-                            <p className="mt-1 font-black uppercase">
-                              {resultado.nivel_peligro || 'desconocido'}
-                            </p>
-                          </div>
+              {/* Stoichiometric Atom Count Table */}
+              {resultado.componentes?.length > 0 && (
+                <div className="mt-6">
+                  <h4 className="text-xs font-mono font-bold text-slate-400 uppercase tracking-widest">
+                    Composición Estequiométrica (Átomos en la Fórmula)
+                  </h4>
+                  <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                    {resultado.componentes.map((c, i) => (
+                      <div key={i} className="rounded-xl border border-slate-800 bg-slate-950/60 p-3.5 font-mono">
+                        <div className="flex items-center justify-between text-cyan-400">
+                          <span className="text-lg font-bold">{c.elemento}</span>
+                          <span className="text-xs rounded bg-slate-800 px-2 py-0.5 text-white font-bold">
+                            × {c.cantidad} átomos
+                          </span>
                         </div>
-
-                        {resultado.advertencia_seguridad && (
-                          <div className="mt-4 rounded-2xl border border-red-400/30 bg-red-500/10 p-4 text-sm text-red-100">
-                            <p className="font-black text-red-200">
-                              Advertencia de seguridad
-                            </p>
-
-                            <p className="mt-1">
-                              {resultado.advertencia_seguridad}
-                            </p>
-                          </div>
-                        )}
-
-                        {resultado.riesgos?.length > 0 && (
-                          <div className="mt-4 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 text-sm text-amber-100">
-                            <p className="font-black text-amber-200">
-                              Riesgos generales
-                            </p>
-
-                            <ul className="mt-2 list-disc space-y-1 pl-5">
-                              {resultado.riesgos.map((riesgo, index) => (
-                                <li key={index}>{riesgo}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-
-                        {resultado.compuestos_posibles?.length > 1 && (
-                          <div className="mt-4 rounded-2xl border border-emerald-400/30 bg-emerald-400/10 p-4 text-sm text-emerald-100">
-                            <p className="font-black text-emerald-200">
-                              Otros compuestos posibles
-                            </p>
-
-                            <div className="mt-3 grid gap-3">
-                              {resultado.compuestos_posibles
-                                .slice(1)
-                                .map((compuesto, index) => (
-                                  <div
-                                    key={index}
-                                    className="rounded-xl border border-white/10 bg-white/5 p-3"
-                                  >
-                                    <p className="font-black text-white">
-                                      {compuesto.formula} - {compuesto.nombre}
-                                    </p>
-
-                                    <p className="mt-1 text-sm text-emerald-100/80">
-                                      {compuesto.descripcion}
-                                    </p>
-
-                                    {compuesto.componentes?.length > 0 && (
-                                      <div className="mt-3 flex flex-wrap gap-2">
-                                        {compuesto.componentes.map(
-                                          (item, itemIndex) => (
-                                            <span
-                                              key={`${item.elemento}-${itemIndex}`}
-                                              className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-bold text-white"
-                                            >
-                                              {item.cantidad} × {item.elemento}
-                                            </span>
-                                          )
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {resultado.sugerencias_seguras?.length > 0 && (
-                          <div className="mt-4 rounded-2xl border border-cyan-400/30 bg-cyan-400/10 p-4 text-sm text-cyan-100">
-                            <p className="font-black text-cyan-200">
-                              Sugerencias seguras
-                            </p>
-
-                            <ul className="mt-2 list-disc space-y-1 pl-5">
-                              {resultado.sugerencias_seguras.map(
-                                (sugerencia, index) => (
-                                  <li key={index}>{sugerencia}</li>
-                                )
-                              )}
-                            </ul>
-                          </div>
-                        )}
-
-                        {resultado.elementos_similares?.length > 0 && (
-                          <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-200">
-                            <p className="font-black text-white">
-                              Elementos similares o alternativos
-                            </p>
-
-                            <div className="mt-3 flex flex-wrap gap-2">
-                              {resultado.elementos_similares.map((el, index) => (
-                                <span
-                                  key={index}
-                                  className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-bold text-slate-200"
-                                >
-                                  {el}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {resultado.nota && (
-                          <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4 text-sm text-slate-300">
-                            {resultado.nota}
-                          </div>
-                        )}
-
-                        {!resultado.conocido && (
-                          <div className="mt-4 rounded-2xl border border-amber-400/30 bg-amber-400/10 p-4 text-sm text-amber-100">
-                            Esta combinación no aparece como compuesto conocido
-                            principal. La IA puede sugerir alternativas o usos
-                            educativos seguros.
-                          </div>
-                        )}
+                        <p className="mt-1 text-xs text-slate-400 truncate">{c.nombre}</p>
                       </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Safety & Hazards Warning */}
+              {resultado.advertencia_seguridad && (
+                <div className="mt-6 rounded-xl border border-amber-500/30 bg-amber-950/20 p-4 font-mono text-xs text-amber-200">
+                  <div className="flex items-start gap-2.5">
+                    <ShieldAlert className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
+                    <div>
+                      <strong className="block text-amber-300 font-bold uppercase text-[11px]">
+                        Protocolo de Manejo Seguro en Laboratorio
+                      </strong>
+                      <p className="mt-1 opacity-90 leading-relaxed">
+                        {resultado.advertencia_seguridad}
+                      </p>
                     </div>
-                  </>
-                )}
-              </div>
-            )}
-          </section>
+                  </div>
+                </div>
+              )}
 
-          <aside className="space-y-5">
-            <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 shadow-2xl shadow-black/20 backdrop-blur">
-              <h2 className="text-xl font-black text-white">
-                Ejemplos rápidos
-              </h2>
-
-              <p className="mt-2 text-sm text-slate-400">
-                Prueba combinaciones de 2, 3 o 4 elementos.
-              </p>
-
-              <div className="mt-5 space-y-3">
-                {[
-                  [['H', 'O'], 'Agua', 'H₂O'],
-                  [['Na', 'Cl'], 'Sal común', 'NaCl'],
-                  [['C', 'O'], 'Dióxido de carbono', 'CO₂'],
-                  [['Na', 'H', 'C', 'O'], 'Bicarbonato de sodio', 'NaHCO₃'],
-                  [['H', 'S', 'O'], 'Ácido sulfúrico', 'H₂SO₄'],
-                  [['C', 'H', 'O'], 'Glucosa / compuestos orgánicos', 'C₆H₁₂O₆'],
-                ].map(([lista, nombre, formula]) => (
-                  <button
-                    key={`${lista.join('-')}-${formula}`}
-                    type="button"
-                    onClick={() => cargarEjemplo(lista)}
-                    disabled={procesandoIA}
-                    className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-left transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <span>
-                      <span className="font-black text-white">
-                        {lista.join(' + ')}
-                      </span>
-
-                      <span className="block text-xs text-slate-400">
-                        {nombre} · {formula}
-                      </span>
+              {/* Specific Risks List */}
+              {resultado.riesgos?.length > 0 && (
+                <div className="mt-4 flex flex-wrap items-center gap-2">
+                  <span className="text-xs font-mono text-slate-400 mr-1">Riesgos Clasificados:</span>
+                  {resultado.riesgos.map((r, idx) => (
+                    <span
+                      key={idx}
+                      className="rounded-lg border border-rose-500/30 bg-rose-950/30 px-2.5 py-1 text-xs font-mono text-rose-300"
+                    >
+                      {r}
                     </span>
+                  ))}
+                </div>
+              )}
 
-                    <span className="text-cyan-300">›</span>
-                  </button>
-                ))}
-              </div>
             </div>
+          )}
+        </section>
+      )}
 
-            <div className="rounded-3xl border border-cyan-400/20 bg-cyan-400/10 p-6 text-cyan-100">
-              <h3 className="font-black">Nota importante</h3>
-
-              <p className="mt-2 text-sm leading-6 text-cyan-100/80">
-                La cantidad de elementos seleccionados no representa la cantidad
-                de átomos. Por ejemplo, al elegir H y O, la IA puede devolver
-                H₂O, que contiene 2 átomos de hidrógeno y 1 de oxígeno.
-              </p>
-            </div>
-
-            <div className="rounded-3xl border border-amber-400/20 bg-amber-400/10 p-6 text-amber-100">
-              <h3 className="font-black">Límite recomendado</h3>
-
-              <p className="mt-2 text-sm leading-6 text-amber-100/80">
-                Para mantener respuestas claras, esta vista permite máximo 5
-                elementos por mezcla.
-              </p>
-            </div>
-          </aside>
-        </div>
-      </section>
     </main>
   );
 }

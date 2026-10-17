@@ -1,1 +1,62 @@
 @import 'tailwindcss';
+
+@layer base {
+  :root {
+    --bg-lab: #080d1a;
+    --bg-surface: #0f172a;
+    --bg-surface-elevated: #1e293b;
+    --border-lab: rgba(148, 163, 184, 0.12);
+    --border-accent: rgba(56, 189, 248, 0.3);
+    --accent-cyan: #38bdf8;
+    --accent-emerald: #10b981;
+  }
+
+  body {
+    background-color: var(--bg-lab);
+    color: #f1f5f9;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    overflow-x: hidden;
+  }
+}
+
+/* Subtle laboratory blueprint grid pattern */
+.bg-lab-pattern {
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+.bg-radial-gradient {
+  background: radial-gradient(circle at 50% 0%, rgba(56, 189, 248, 0.08) 0%, transparent 65%);
+}
+
+/* Custom sleek technical scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #080d1a;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1e293b;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #334155;
+}
+
+/* Subscript and superscript utilities */
+sub, sup {
+  font-size: 75%;
+  line-height: 0;
+  position: relative;
+  vertical-align: baseline;
+}
+sub { bottom: -0.25em; }
+sup { top: -0.5em; }

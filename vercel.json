@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "framework": null,
+  "buildCommand": "npm run build:frontend",
+  "outputDirectory": "frontend/dist",
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index.js" },
+    { "source": "/elementos(.*)", "destination": "/api/index.js" },
+    { "source": "/mezclar(.*)", "destination": "/api/index.js" },
+    { "source": "/health(.*)", "destination": "/api/index.js" },
+    { "source": "/api-docs(.*)", "destination": "/api/index.js" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

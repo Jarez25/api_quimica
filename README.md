@@ -1,232 +1,153 @@
-# 🔬 API de Elementos Químicos
+# 🔬 API de Química & Laboratorio Estequiométrico Avanzado
 
-Esta es una API RESTful desarrollada con **Node.js**, **Express** y **MongoDB** que permite consultar información sobre elementos químicos.  
-Además, incluye una interfaz **frontend en React + Vite** integrada dentro del proyecto para visualizar y consumir los datos de forma interactiva.  
-Toda la API está documentada con **Swagger** para facilitar su uso y prueba.
+Plataforma científica empresarial para el análisis interactivo de la Tabla Periódica, modelado atómico cuántico (Modelo de Bohr, diamante NFPA 704) y simulación estequiométrica de síntesis molecular potenciada por **Inteligencia Artificial (con opciones 100% gratuitas)** y catálogo calibrado de alta precisión.
 
 ---
 
-## 📦 Tecnologías utilizadas
+## 🏗️ Arquitectura del Sistema
 
-### Backend
-- Node.js
-- Express
-- MongoDB Atlas
-- Mongoose
-- Swagger (OpenAPI 3.0)
+El proyecto está diseñado como un **Monorepo Unificado** optimizado tanto para desarrollo local como para despliegue automatizado en la nube:
 
-### Frontend
-- React
-- Vite
-- Tailwind CSS
-- React Router DOM
+```
+api_quimica/
+├── .github/workflows/deploy.yml   # Pipeline CI/CD automatizado con GitHub Actions
+├── api/
+│   └── index.js                   # Serverless Function Adapter para Vercel
+├── controllers/
+│   ├── elementosController.js     # Controlador CRUD y consultas a MongoDB Atlas
+│   └── mezclarController.js       # Motor estequiométrico multi-proveedor de IA
+├── data/
+│   └── compuestosDatabase.js      # Catálogo estequiométrico calibrado (0 costo / instantáneo)
+├── frontend/                      # SPA React 19 + Vite + Tailwind CSS + Lucide
+│   ├── src/
+│   │   ├── components/            # Tabla periódica, Detalle cuántico, Laboratorio estequiométrico
+│   │   ├── config/api.js          # Adaptador dinámico de URL (Local vs Vercel sin CORS)
+│   │   └── utils/chemistry.js     # Modelado de Bohr, cálculo de valencias y diamantes NFPA
+│   └── package.json
+├── models/
+│   └── elementoModel.js           # Esquema Mongoose de elementos químicos
+├── routes/                        # Enrutadores Express (/elementos, /mezclar)
+├── index.js                       # Servidor Express principal con pool de conexiones cached
+├── vercel.json                    # Reglas de enrutamiento y compilación unificada en Vercel
+├── .env.example                   # Plantilla de variables de entorno y proveedores de IA
+└── package.json                   # Scripts raíz y dependencias
+```
 
 ---
 
-## 🚀 Instalación y ejecución
+## 🤖 Integración de Inteligencia Artificial Gratuita (Zero Cost)
 
-### 1️⃣ Clonar el repositorio
+La ruta `/mezclar` soporta proporciones atómicas arbitrarias ($H_2O$, $HO^\bullet$, $H_3O^+$, $H_2O_2$, $CO$, $CO_2$, etc.). El sistema utiliza una estrategia en dos capas:
 
-```bash
-git clone https://github.com/tu_usuario/elementos-api.git
-cd elementos-api
-```
+1. **Capa 1: Motor Calibrado Local (0 tokens, 0 costo)**:
+   - Resuelve instantáneamente combinaciones y proporciones estándar con análisis termodinámico y de estabilidad.
+2. **Capa 2: Proveedores de IA Gratuitos (Compatibles con API OpenAI)**:
+   - **Google Gemini 1.5/2.0 Flash (Recomendado)**: 100% gratuito sin costo de tarjeta de crédito (15 peticiones por minuto, 1 millón de tokens por minuto).
+     - Consigue tu API Key en: [Google AI Studio](https://aistudio.google.com/app/apikey)
+     - Variable: `GEMINI_API_KEY`
+   - **Groq Cloud (Llama 3.3 70B)**: Inferencia ultrarrápida gratuita.
+     - Consigue tu API Key en: [Groq Console](https://console.groq.com/keys)
+     - Variable: `GROQ_API_KEY`
+   - **OpenRouter Free Tier**:
+     - Variable: `OPENROUTER_API_KEY`
+   - **OpenAI (Opcional de pago)**:
+     - Variable: `OPENAI_API_KEY`
 
-### 2️⃣ Instalar dependencias del backend
+---
 
-```bash
-npm install
-```
+## 🚀 Despliegue Continuo con GitHub Actions (CI/CD a Vercel)
 
-### 3️⃣ Crear archivo `.env`
+Cada vez que realizas un `git push origin main`, GitHub Actions compila automáticamente el frontend y despliega la versión de producción a Vercel.
 
+### 📋 Pasos para Configurar el Pipeline:
+
+1. **Crear o Vincular el Proyecto en Vercel**:
+   - En tu consola de Vercel ([vercel.com](https://vercel.com)), crea un nuevo proyecto importando el repositorio o ejecuta localmente:
+     ```bash
+     npm run deploy:vercel
+     ```
+2. **Obtener tus Credenciales en Vercel**:
+   - **`VERCEL_TOKEN`**: Genera un token personal en [Vercel Account Tokens](https://vercel.com/account/tokens).
+   - **`VERCEL_ORG_ID`** y **`VERCEL_PROJECT_ID`**: Si el proyecto está vinculado, se encuentran en `.vercel/project.json` o en los Settings del proyecto en Vercel.
+3. **Configurar los Secrets en GitHub**:
+   - Ve a tu repositorio en GitHub: `https://github.com/Jarez25/api_quimica/settings/secrets/actions`
+   - Haz clic en **New repository secret** y añade:
+     - `VERCEL_TOKEN`: Tu token de Vercel.
+     - `VERCEL_ORG_ID`: El ID de tu organización/cuenta en Vercel.
+     - `VERCEL_PROJECT_ID`: El ID de tu proyecto en Vercel.
+4. **Configurar Variables de Entorno en Vercel Dashboard**:
+   - En `Project Settings -> Environment Variables`, añade:
+     - `MONGO_URI`: `mongodb+srv://jarez:RJHhFarWsCuGSH8f@cluster0.9w7rc.mongodb.net/quimica?retryWrites=true&w=majority`
+     - `GEMINI_API_KEY`: Tu API Key gratuita de Google AI Studio (o `GROQ_API_KEY`).
+5. **¡Listo!**: Al hacer `git push origin main`, el workflow `.github/workflows/deploy.yml` se disparará automáticamente y publicará los cambios.
+
+---
+
+## 💻 Ejecución en Desarrollo Local
+
+### 1. Variables de Entorno:
+Copia `.env.example` a `.env` y configura tus claves:
 ```env
-MONGO_URI=tu_uri_de_mongodb_atlas
 PORT=3000
+MONGO_URI=mongodb+srv://jarez:RJHhFarWsCuGSH8f@cluster0.9w7rc.mongodb.net/quimica?retryWrites=true&w=majority
+CLIENT_URL=http://localhost:5173
+GEMINI_API_KEY=tu_api_key_de_google_ai_studio
 ```
 
-### 4️⃣ Ejecutar el servidor
-
+### 2. Iniciar Backend:
 ```bash
-npm start
-```
-
-> También puedes usar `nodemon` si lo tienes instalado:
-> ```bash
-> npx nodemon index.js
-> ```
-
----
-
-## 🧩 Documentación Swagger
-
-Una vez iniciado el servidor, abre:
-
-👉 [http://localhost:3000/api-docs](http://localhost:3000/api-docs)
-
-Desde ahí puedes probar los endpoints de forma interactiva.
-
----
-
-## 🌐 Endpoints disponibles
-
-| Método | Ruta | Descripción |
-|--------|------|-------------|
-| `GET`  | `/elementos` | Obtener todos los elementos |
-| `GET`  | `/elementos/:id` | Obtener elemento por ID (MongoDB) |
-| `GET`  | `/elementos/atomic_number/:atomic_number` | Obtener por número atómico |
-| `GET`  | `/elementos/symbol/:symbol` | Obtener por símbolo químico |
-| `GET`  | `/elementos/name/:name` | Obtener por nombre del elemento |
-| `GET`  | `/elementos/grupo/:grupo` | Obtener elementos por grupo o familia |
-
----
-
-## 🖥️ Frontend (React + Vite)
-
-El proyecto incluye una interfaz web en la carpeta **`fronted/`**.  
-Esta aplicación consume la API (`http://localhost:3000`) y ofrece funcionalidades como:
-
-- 🔎 Buscador por símbolo, número atómico o nombre  
-- 📊 Visualización de detalles de cada elemento  
-- 📚 Documentación integrada  
-- ⚗️ Ejemplos de mezclas químicas simuladas  
-
-### 📂 Estructura del proyecto
-
-```
-elementos-api/
-├─ fronted/                 # Frontend (React + Vite)
-│  ├─ imagen1.png
-│  ├─ imagen2.png
-│  ├─ index.html
-│  ├─ vite.config.js
-│  └─ src/
-│     ├─ main.jsx
-│     ├─ App.jsx
-│     └─ components/
-├─ src/                     # Backend (Node/Express)
-├─ .env
-├─ package.json
-└─ README.md
-```
-
----
-
-### ▶️ Ejecutar el frontend en desarrollo
-
-```bash
-cd fronted
 npm install
 npm run dev
 ```
+Servidor disponible en: `http://localhost:3000`  
+Swagger UI interactivo: `http://localhost:3000/api-docs`  
+Health check: `http://localhost:3000/health`
 
-Por defecto se abre en:  
-👉 [http://localhost:5173](http://localhost:5173)
-
-Asegúrate de tener la API corriendo en `http://localhost:3000`.
-
----
-
-### ⚙️ Configurar CORS o Proxy
-
-#### Opción 1 – Habilitar CORS en Express
+### 3. Iniciar Frontend:
+En otra terminal:
 ```bash
-npm i cors
+cd frontend
+npm install
+npm run dev
 ```
-
-```js
-// src/index.js
-import cors from 'cors';
-app.use(cors());
-```
-
-#### Opción 2 – Configurar proxy en Vite
-```js
-// fronted/vite.config.js
-export default {
-  server: {
-    proxy: {
-      '/elementos': 'http://localhost:3000'
-    }
-  }
-};
-```
+Aplicación disponible en: `http://localhost:5173`
 
 ---
 
-### 🧠 Variables de entorno (opcional)
+## 📡 Endpoints de la API
 
-```bash
-# fronted/.env
-VITE_API_BASE=http://localhost:3000
+| Método | Endpoint | Descripción |
+|---|---|---|
+| `GET` | `/health` | Diagnóstico de salud, base de datos y estado de proveedores de IA |
+| `GET` | `/elementos` | Catálogo completo de los 118 elementos químicos |
+| `GET` | `/elementos/:id` | Búsqueda por ID MongoDB |
+| `GET` | `/elementos/atomic_number/:n` | Búsqueda por número atómico (1 a 118) |
+| `GET` | `/elementos/symbol/:symbol` | Búsqueda por símbolo químico (ej: `H`, `Au`, `U`) |
+| `GET` | `/elementos/grupo/:grupo` | Filtrado por familia química |
+| `POST` | `/mezclar` | Síntesis estequiométrica asistida por IA y catálogo calibrado |
+
+---
+
+## 🧪 Ejemplo de Consulta Estequiométrica (`POST /mezclar`)
+
+```json
+{
+  "reactivos": [
+    { "elemento": "H", "cantidad": 3 },
+    { "elemento": "O", "cantidad": 1 }
+  ]
+}
 ```
 
-Uso en React:
-```js
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:3000';
-fetch(`${API_BASE}/elementos`);
+**Respuesta**:
+```json
+{
+  "origen_datos": "catalogo_estequiometrico_calibrado",
+  "resultado": "H3O+",
+  "nombre": "Ion Hidronio (Catión Oxonio)",
+  "tipo_especie": "Catión poliatómico hidratado",
+  "geometria_molecular": "Piramidal trigonal (ángulo ~113°)",
+  "estabilidad": "Especie termodinámicamente fundamental en soluciones ácidas acuosas",
+  "nivel_peligro": "alto"
+}
 ```
-
----
-
-### 📦 Build de producción
-
-```bash
-cd fronted
-npm run build
-```
-
-Esto genera la carpeta `fronted/dist/`.
-
-Para servir la app desde Express:
-
-```js
-// src/index.js
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import express from 'express';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-app.use(express.static(path.join(__dirname, '..', 'fronted', 'dist')));
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '..', 'fronted', 'dist', 'index.html'));
-});
-```
-
----
-
-## 🖼️ Capturas de pantalla
-
-### Pantalla principal
-![Vista principal](./fronted/imagen1.png)
-
-### Documentación y búsqueda
-![Documentación y búsqueda](./fronted/imagen2.png)
-
----
-
-## ✅ Estado del proyecto
-
-- [x] CRUD básico (solo lectura)
-- [x] Documentación con Swagger
-- [x] Conexión con MongoDB Atlas
-- [x] Frontend con React + Vite
-- [x] Búsqueda dinámica (símbolo, número, nombre)
-- [ ] Tests automatizados (próximamente)
-- [ ] Creación, edición y eliminación (opcional)
-
----
-
-## ✍️ Autor
-
-**Jairo José Medina Suárez**  
-Proyecto educativo para practicar **Node.js**, **Express**, **MongoDB** y **React**.  
-Inspirado en la tabla periódica de los elementos.
-
----
-
-## 📄 Licencia
-
-Este proyecto está bajo la licencia **MIT**.

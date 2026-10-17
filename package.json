@@ -1,11 +1,14 @@
 {
   "name": "jarez",
   "version": "1.0.0",
-  "description": "api de libros",
+  "description": "API REST de elementos químicos y tabla periódica interactiva",
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "dev": "nodemon index.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "build:frontend": "npm --prefix frontend install && npm --prefix frontend run build",
+    "deploy:vercel": "vercel --prod --token vcp_1Tv4RLBt0GNjmZxUOx8yUWlowm71qT2PrXGUnziBfkSQsdKS011WAc2h --yes"
   },
   "author": "",
   "license": "ISC",
@@ -20,6 +23,7 @@
     "swagger-ui-express": "^5.0.1"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "nodemon": "^3.1.10",
+    "vercel": "^64.4.0"
   }
 }

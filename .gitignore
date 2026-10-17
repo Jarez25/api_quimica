@@ -15,3 +15,10 @@ yarn-error.log*
 # IDEs
 .vscode/
 .idea/
+
+# Vercel & Builds
+.vercel/
+frontend/dist/
+dist/
+
+.vercel
